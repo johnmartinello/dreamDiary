@@ -1,31 +1,31 @@
-# DreamWeave
+# Dream Diary
 
 A modern dream journaling application built with React, TypeScript, and Tailwind CSS. Features a glass morphism UI design and  dream organization capabilities with analysis.
 
 ## Screenshots
 
 ### Main Menu
-![DreamWeave Menu](images/dreamweavemenu.png)
+![Dream Diary Menu](images/dreamweavemenu.png)
 *The main menu interface with glass morphism design*
 
 ### Dream Editor
-![DreamWeave Editor](images/dreamweaveeditor.png)
+![Dream Diary Editor](images/dreamweaveeditor.png)
 *Create and edit dreams with rich text formatting and citation support*
 
 ### Dream Graph
-![DreamWeave Graph](images/dreamweavegraph.png)
+![Dream Diary Graph](images/dreamweavegraph.png)
 *Interactive graph visualization showing connections between dreams*
 
 ### Citation System
-![DreamWeave Citations](images/dreamweavecitations.png)
+![Dream Diary Citations](images/dreamweavecitations.png)
 *Citation management and dream linking features*
 
 ## Download
 
 1. Go to the [Release](https://github.com/johnmartinello/Dreamweave/tree/main/release) page
-2. Download `DreamWeave-Setup-x.x.x.exe` (latest version)
+2. Download `Dream Diary-Setup-x.x.x.exe` (latest version)
 3. Run the installer and follow the setup wizard
-4. Launch DreamWeave from your Start Menu or desktop shortcut
+4. Launch Dream Diary from your Start Menu or desktop shortcut
 
 ### Alternative: Build from Source
 If you prefer to build the application yourself, see the [Installation](#installation) section below.
@@ -94,7 +94,7 @@ If you prefer to build the application yourself, see the [Installation](#install
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd dreamweave
+cd Dreamweave
 ```
 
 2. Install dependencies:
@@ -166,7 +166,7 @@ To test the application in your web browser:
 
 ### Electron Desktop App Testing
 
-To launch DreamWeave as a separate desktop application:
+To launch Dream Diary as a separate desktop application:
 
 1. **Launch as standalone desktop app (recommended for testing):**
    ```bash
@@ -175,7 +175,7 @@ To launch DreamWeave as a separate desktop application:
    
    This command will:
    - Start the Vite development server in the background
-   - Launch DreamWeave as a separate desktop application window
+   - Launch Dream Diary as a separate desktop application window
    - Automatically reload when code changes
    - The app runs independently from your browser
 

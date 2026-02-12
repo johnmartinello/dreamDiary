@@ -84,7 +84,7 @@ export const ptBR = {
   passwordRemoved: 'Senha removida com sucesso',
   wrongPassword: 'Senha incorreta',
   unlock: 'Desbloquear',
-  welcomeToDreamWeave: 'Bem-vindo ao DreamWeave',
+  welcomeToDreamWeave: 'Bem-vindo ao Dream Diary',
   createPasswordToProtect: 'Crie uma senha para proteger seus sonhos',
   enterPasswordToContinue: 'Digite sua senha para continuar',
   creating: 'Criando...',

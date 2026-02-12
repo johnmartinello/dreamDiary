@@ -51,7 +51,7 @@ export const exportToJSON = async (data: { dreams: Dream[]; trashedDreams: Dream
     // Generate filename with current date
     const date = new Date();
     const dateStr = date.toISOString().split('T')[0];
-    link.download = `dreamweave-export-${dateStr}.json`;
+    link.download = `dream-diary-export-${dateStr}.json`;
     
     document.body.appendChild(link);
     link.click();

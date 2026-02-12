@@ -1,6 +1,6 @@
-# DreamWeave - Electron App
+# Dream Diary - Electron App
 
-This is the desktop version of the DreamWeave application built with Electron.
+This is the desktop version of the Dream Diary application built with Electron.
 
 ## Development
 

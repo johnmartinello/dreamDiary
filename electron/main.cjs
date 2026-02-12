@@ -14,7 +14,7 @@ function createWindow() {
     height: 800,
     minWidth: 800,
     minHeight: 600,
-    title: 'DreamWeave',
+    title: 'Dream Diary',
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -114,8 +114,8 @@ ipcMain.handle('get-app-name', () => {
 ipcMain.handle('export-data', async (event, jsonString) => {
   try {
     const { filePath } = await dialog.showSaveDialog(mainWindow, {
-      title: 'Export DreamWeave Data',
-      defaultPath: `dreamweave-export-${new Date().toISOString().split('T')[0]}.json`,
+      title: 'Export Dream Diary Data',
+      defaultPath: `dream-diary-export-${new Date().toISOString().split('T')[0]}.json`,
       filters: [
         { name: 'JSON Files', extensions: ['json'] },
         { name: 'All Files', extensions: ['*'] }
@@ -137,7 +137,7 @@ ipcMain.handle('export-data', async (event, jsonString) => {
 ipcMain.handle('import-data', async () => {
   try {
     const { filePaths, canceled } = await dialog.showOpenDialog(mainWindow, {
-      title: 'Import DreamWeave Data',
+      title: 'Import Dream Diary Data',
       filters: [
         { name: 'JSON Files', extensions: ['json'] },
         { name: 'All Files', extensions: ['*'] }

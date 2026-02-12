@@ -84,7 +84,7 @@ export const en = {
   passwordRemoved: 'Password removed successfully',
   wrongPassword: 'Wrong password',
   unlock: 'Unlock',
-  welcomeToDreamWeave: 'Welcome to DreamWeave',
+  welcomeToDreamWeave: 'Welcome to Dream Diary',
   createPasswordToProtect: 'Create a password to protect your dreams',
   enterPasswordToContinue: 'Enter your password to continue',
   creating: 'Creating...',

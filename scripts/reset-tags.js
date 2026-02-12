@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// DreamWeave tag reset script
+// Dream Diary tag reset script
 // - Locates Electron userData directory
 // - Backs up existing dreams/trashed_dreams JSON files
 // - Clears tags on all dreams (sets to [])
@@ -9,7 +9,7 @@ const fs = require('fs');
 const path = require('path');
 
 function getUserDataPath() {
-  const appName = 'DreamWeave';
+  const appName = 'Dream Diary';
   switch (process.platform) {
     case 'win32':
       return path.join(process.env.APPDATA || path.join(process.env.USERPROFILE || '', 'AppData', 'Roaming'), appName);
@@ -80,7 +80,7 @@ function main() {
   resetTagsInFile(dreamsPath);
   resetTagsInFile(trashedPath);
 
-  console.log('Done. You may need to restart DreamWeave to see changes.');
+  console.log('Done. You may need to restart Dream Diary to see changes.');
 }
 
 main();

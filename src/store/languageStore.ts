@@ -14,7 +14,7 @@ export const useLanguageStore = create<LanguageStore>()(
       setLanguage: (language: Language) => set({ language }),
     }),
     {
-      name: 'dreamweave-language',
+      name: 'dream-diary-language',
     }
   )
 );

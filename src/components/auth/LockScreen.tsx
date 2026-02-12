@@ -85,7 +85,7 @@ export function LockScreen({ isFirstLaunch = false }: LockScreenProps) {
               </svg>
             </div>
             <h1 className="text-3xl font-bold text-white mb-2">
-              {isFirstLaunch ? t('welcomeToDreamWeave') : 'DreamWeave'}
+              {isFirstLaunch ? t('welcomeToDreamWeave') : 'Dream Diary'}
             </h1>
             <p className="text-white/60 text-sm">
               {isFirstLaunch 
