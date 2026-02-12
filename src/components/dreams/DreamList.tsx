@@ -69,7 +69,7 @@ export function DreamList() {
                     ? `Dreams tagged with "${selectedTag}"` 
                     : dateRange.startDate || dateRange.endDate
                     ? 'Filtered dreams'
-                    : t('dreams')}
+                    : ''}
                 </h2>
                 <p className="text-gray-300">
                   {dreams.length === 0

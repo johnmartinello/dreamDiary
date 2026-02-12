@@ -66,14 +66,6 @@ export function Sidebar() {
       <div className="w-80 relative">
         
         <div className="h-full p-6 relative z-10 flex flex-col">
-          {/* Enhanced Header */}
-          <div className="flex items-center mb-8 group cursor-pointer hover:opacity-80 transition-opacity duration-200">
-
-            <div>
-              <h1 className="text-2xl font-bold text-white/90 group-hover:text-white transition-colors duration-200">DreamWeave</h1>
-            </div>
-          </div>
-          
           {/* Enhanced Navigation */}
           <div className="space-y-3 mb-8">
             <Button

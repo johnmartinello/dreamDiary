@@ -129,3 +129,97 @@ npm run build
 
 The built files will be in the `dist` directory.
 
+## Running Locally for Testing
+
+### Initial Setup
+
+Before testing, you need to set up the development environment:
+
+1. **Prerequisites:**
+   - Ensure you have Node.js 18+ installed
+   - Check your Node.js version:
+     ```bash
+     node --version
+     ```
+   - Ensure you have npm installed (comes with Node.js):
+     ```bash
+     npm --version
+     ```
+
+2. **Clone the repository:**
+   ```bash
+   git clone https://github.com/johnmartinello/Dreamweave.git
+   cd Dreamweave
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+### Web Browser Testing
+
+To test the application in your web browser:
+
+1. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+2. **Open your browser:**
+   - The development server will start on `http://localhost:5173`
+   - Open this URL in your preferred browser
+   - The app will automatically reload when you make changes to the code
+
+3. **Test features:**
+   - Create, edit, and delete dream entries
+   - Test the search and filtering functionality
+   - Try the citation system and dream graph visualization
+   - Test AI features (if configured)
+
+### Electron Desktop App Testing
+
+To launch DreamWeave as a separate desktop application:
+
+1. **Launch as standalone desktop app (recommended for testing):**
+   ```bash
+   npm run electron-dev
+   ```
+   
+   This command will:
+   - Start the Vite development server in the background
+   - Launch DreamWeave as a separate desktop application window
+   - Automatically reload when code changes
+   - The app runs independently from your browser
+
+2. **Alternative: Launch built version:**
+   ```bash
+   npm run build
+   npm run electron
+   ```
+   
+   This builds the app first, then launches it as a standalone Electron desktop application.
+   
+   **Note:** For this method, you'll need to manually start the preview server if needed:
+   ```bash
+   npm run preview
+   ```
+   Then in a separate terminal:
+   ```bash
+   npm run electron
+   ```
+
+### Testing Tips
+
+- **Hot Module Replacement**: Changes to React components will automatically update in the browser/Electron window
+- **Console Logs**: Check the browser DevTools (F12) or Electron DevTools for debugging information
+- **Data Persistence**: Test data is stored locally in your browser's IndexedDB (web) or Electron's user data directory
+- **AI Configuration**: Make sure to configure AI settings in the app if you want to test AI-powered features
+- **Port Conflicts**: If port 5173 is already in use, Vite will automatically use the next available port
+
+### Troubleshooting
+
+- **Port already in use**: Change the port by modifying `vite.config.js` or using `npm run dev -- --port <port-number>`
+- **Dependencies issues**: Run `npm install` again to ensure all dependencies are properly installed
+- **Build errors**: Run `npm run lint` to check for code issues before building
+
