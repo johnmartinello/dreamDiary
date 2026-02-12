@@ -9,7 +9,8 @@ import { TagPill } from './TagPill';
 import { formatDateForInput, useWindowSize } from '../../utils';
 import { cn } from '../../utils';
 import { useI18n } from '../../hooks/useI18n';
-import { UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
+import { resolveCategoryColorHex, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
+import type { CategoryColor } from '../../types/taxonomy';
 
 interface GraphNode {
   id: string;
@@ -123,26 +124,7 @@ export function DreamGraph() {
     if (node.tags.length === 0) return '#6b7280';
     const primaryTag = node.tags[0];
     const color = getTagColor(primaryTag.id);
-    
-    const colorMap: Record<string, string> = {
-      cyan: '#06b6d4',
-      purple: '#8b5cf6',
-      pink: '#ec4899',
-      emerald: '#10b981',
-      amber: '#f59e0b',
-      blue: '#3b82f6',
-      indigo: '#6366f1',
-      violet: '#8b5cf6',
-      rose: '#f43f5e',
-      teal: '#14b8a6',
-      lime: '#84cc16',
-      orange: '#f97316',
-      red: '#ef4444',
-      green: '#22c55e',
-      yellow: '#eab308',
-    };
-    
-    return colorMap[color] || '#6b7280';
+    return resolveCategoryColorHex(color);
   };
 
   const getNodeSize = (node: GraphNode) => {
@@ -332,7 +314,7 @@ export function DreamGraph() {
                   {t('categories')}
                 </label>
                 <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
-                  {[{ id: UNCATEGORIZED_CATEGORY_ID, name: t('uncategorized'), color: 'violet' as const }, ...categories].map((meta: any) => (
+                  {[{ id: UNCATEGORIZED_CATEGORY_ID, name: t('uncategorized'), color: 'violet' as CategoryColor }, ...categories].map((meta) => (
                     <button
                       key={meta.id}
                       onClick={() => handleTagToggle(`category:${meta.id}`)}
@@ -343,7 +325,7 @@ export function DreamGraph() {
                         tag={meta.name}
                         size="sm"
                         variant={graphFilters.selectedTags.includes(`category:${meta.id}`) ? "gradient" : "default"}
-                        color={meta.color as any}
+                        color={meta.color}
                       />
                     </button>
                   ))}

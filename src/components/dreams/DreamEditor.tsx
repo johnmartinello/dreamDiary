@@ -8,12 +8,13 @@ import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { TagPill } from './TagPill';
+import { CategoryColorPickerModal } from './CategoryColorPickerModal';
 import { Card } from '../ui/Card';
 import { formatDateForInput, getCurrentDateString, formatTime } from '../../utils';
 import { useDebounce } from '@uidotdev/usehooks';
 import { cn } from '../../utils';
-import { buildTagId, getCategoryName, UNCATEGORIZED_CATEGORY_ID, CATEGORY_COLORS } from '../../types/taxonomy';
-import type { DreamTag } from '../../types/taxonomy';
+import { buildTagId, getCategoryName, resolveCategoryColorHex, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
+import type { CategoryColor, DreamTag } from '../../types/taxonomy';
 
 
 
@@ -51,7 +52,7 @@ export function DreamEditor() {
   const [tagAutocompletePosition, setTagAutocompletePosition] = useState({ top: 0, left: 0, width: 0 });
   const [showCreateCategoryInline, setShowCreateCategoryInline] = useState(false);
   const [newCategoryNameInline, setNewCategoryNameInline] = useState('');
-  const [newCategoryColorInline, setNewCategoryColorInline] = useState<'cyan' | 'purple' | 'pink' | 'emerald' | 'amber' | 'blue' | 'indigo' | 'violet' | 'rose' | 'teal' | 'lime' | 'orange' | 'red' | 'green' | 'yellow'>('violet');
+  const [newCategoryColorInline, setNewCategoryColorInline] = useState<CategoryColor>('violet');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showCitedDreamModal, setShowCitedDreamModal] = useState(false);
@@ -69,7 +70,13 @@ export function DreamEditor() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryColor, setNewCategoryColor] = useState<'cyan' | 'purple' | 'pink' | 'emerald' | 'amber' | 'blue' | 'indigo' | 'violet' | 'rose' | 'teal' | 'lime' | 'orange' | 'red' | 'green' | 'yellow'>('violet');
+  const [newCategoryColor, setNewCategoryColor] = useState<CategoryColor>('violet');
+  const [showColorPickerModal, setShowColorPickerModal] = useState(false);
+  const [colorPickerTarget, setColorPickerTarget] = useState<{
+    mode: 'inline-new' | 'modal-new' | 'modal-edit';
+    categoryId?: string;
+  } | null>(null);
+  const [colorPickerInitialColor, setColorPickerInitialColor] = useState<CategoryColor>('violet');
   
   // Citation state
   const [showCitationSearch, setShowCitationSearch] = useState(false);
@@ -346,6 +353,38 @@ export function DreamEditor() {
     addCategory({ name, color: newCategoryColor });
     setNewCategoryName('');
     setNewCategoryColor('violet');
+  };
+
+  const openCategoryColorPicker = (
+    target: { mode: 'inline-new' | 'modal-new' | 'modal-edit'; categoryId?: string },
+    color: CategoryColor
+  ) => {
+    setColorPickerTarget(target);
+    setColorPickerInitialColor(color);
+    setShowColorPickerModal(true);
+  };
+
+  const handleCategoryColorPick = (color: CategoryColor) => {
+    if (!colorPickerTarget) return;
+
+    if (colorPickerTarget.mode === 'inline-new') {
+      setNewCategoryColorInline(color);
+    } else if (colorPickerTarget.mode === 'modal-new') {
+      setNewCategoryColor(color);
+    } else if (colorPickerTarget.mode === 'modal-edit' && colorPickerTarget.categoryId) {
+      updateCategory(colorPickerTarget.categoryId, { color });
+    }
+
+    setShowColorPickerModal(false);
+    setColorPickerTarget(null);
+  };
+
+  const getColorChipStyle = (color: CategoryColor) => {
+    const hex = resolveCategoryColorHex(color);
+    return {
+      background: `linear-gradient(145deg, ${hex}44, ${hex}26)`,
+      borderColor: `${hex}88`,
+    };
   };
 
   const handleDelete = () => {
@@ -739,15 +778,20 @@ export function DreamEditor() {
                         variant="transparent"
                         className="w-48 border-b border-white/20 focus:border-gray-400 px-0 py-1 text-sm"
                       />
-                      <select
-                        value={newCategoryColorInline}
-                        onChange={(e) => setNewCategoryColorInline(e.target.value as any)}
-                        className="bg-transparent text-white/80 text-xs border border-white/10 rounded px-2 py-1"
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          openCategoryColorPicker({ mode: 'inline-new' }, newCategoryColorInline)
+                        }
+                        className="gap-2 h-8 px-2 text-xs text-gray-200"
                       >
-                        {CATEGORY_COLORS.map((color) => (
-                          <option key={color} value={color} className="bg-gray-800">{color}</option>
-                        ))}
-                      </select>
+                        <span
+                          className="w-4 h-4 rounded-full border"
+                          style={getColorChipStyle(newCategoryColorInline)}
+                        />
+                        {t('categoryColor')}
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={handleCreateCategoryInline}>
                         {t('add')}
                       </Button>
@@ -835,7 +879,7 @@ export function DreamEditor() {
                           onRemove={() => handleRemoveTag(tag.id)}
                           size="sm"
                           variant="gradient"
-                          color={getTagColor(tag.id) as any}
+                          color={getTagColor(tag.id)}
                           tooltip={`${getCategoryName(tag.categoryId, categories, t('uncategorized'))} > ${tag.label}`}
                         />
                     ))}
@@ -1105,7 +1149,7 @@ export function DreamEditor() {
                             tag={tag.label}
                             size="sm"
                             variant="gradient"
-                            color={getTagColor(tag.id) as any}
+                            color={getTagColor(tag.id)}
                             tooltip={`${getCategoryName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID, categories, t('uncategorized'))} > ${tag.label}`}
                           />
                           <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/20 text-gray-300">
@@ -1174,7 +1218,7 @@ export function DreamEditor() {
                         tag={tag.label}
                         size="sm"
                         variant="gradient"
-                        color={getTagColor(tag.id) as any}
+                        color={getTagColor(tag.id)}
                         tooltip={`${getCategoryName(tag.categoryId, categories, t('uncategorized'))} > ${tag.label}`}
                       />
                     ))}
@@ -1385,15 +1429,15 @@ export function DreamEditor() {
                 variant="transparent"
                 className="flex-1"
               />
-              <select
-                value={newCategoryColor}
-                onChange={(e) => setNewCategoryColor(e.target.value as any)}
-                className="bg-transparent text-white/80 text-xs border border-white/10 rounded px-2 py-1"
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2 text-xs"
+                onClick={() => openCategoryColorPicker({ mode: 'modal-new' }, newCategoryColor)}
               >
-                {CATEGORY_COLORS.map((color) => (
-                  <option key={color} value={color} className="bg-gray-800">{color}</option>
-                ))}
-              </select>
+                <span className="w-4 h-4 rounded-full border" style={getColorChipStyle(newCategoryColor)} />
+                {t('categoryColor')}
+              </Button>
               <Button size="sm" variant="ghost" onClick={handleCreateCategory}>
                 {t('add')}
               </Button>
@@ -1411,15 +1455,20 @@ export function DreamEditor() {
                       variant="transparent"
                       className="flex-1"
                     />
-                    <select
-                      value={category.color}
-                      onChange={(e) => updateCategory(category.id, { color: e.target.value as any })}
-                      className="bg-transparent text-white/80 text-xs border border-white/10 rounded px-2 py-1"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-2 text-xs"
+                      onClick={() =>
+                        openCategoryColorPicker(
+                          { mode: 'modal-edit', categoryId: category.id },
+                          category.color
+                        )
+                      }
                     >
-                      {CATEGORY_COLORS.map((color) => (
-                        <option key={color} value={color} className="bg-gray-800">{color}</option>
-                      ))}
-                    </select>
+                      <span className="w-4 h-4 rounded-full border" style={getColorChipStyle(category.color)} />
+                      {t('changeColor')}
+                    </Button>
                     <Button
                       size="sm"
                       variant="ghost"
@@ -1434,6 +1483,18 @@ export function DreamEditor() {
             </div>
           </div>
         </Modal>
+      )}
+
+      {showColorPickerModal && colorPickerTarget && (
+        <CategoryColorPickerModal
+          isOpen={showColorPickerModal}
+          initialColor={colorPickerInitialColor}
+          onClose={() => {
+            setShowColorPickerModal(false);
+            setColorPickerTarget(null);
+          }}
+          onConfirm={handleCategoryColorPick}
+        />
       )}
 
     </>

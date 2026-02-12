@@ -9,6 +9,7 @@ import { TrashModal } from '../dreams/TrashModal';
 import { LockButton } from '../auth/LockButton';
 import { useMemo, useState } from 'react';
 import { getCategoryName, UNCATEGORIZED_CATEGORY_ID, UNCATEGORIZED_COLOR } from '../../types/taxonomy';
+import type { CategoryColor } from '../../types/taxonomy';
 
 export function Sidebar() {
   const { t } = useI18n();
@@ -26,7 +27,7 @@ export function Sidebar() {
   const tags = getAllTagsWithColors();
 
   const groupedByCategory = useMemo(() => {
-    const groups: Record<string, { label: string; color: string; items: typeof tags }> = {};
+    const groups: Record<string, { label: string; color: CategoryColor; items: typeof tags }> = {};
 
     groups[UNCATEGORIZED_CATEGORY_ID] = {
       label: t('uncategorized'),
@@ -189,7 +190,7 @@ export function Sidebar() {
                             tag={group.label}
                             size="sm"
                             variant="gradient"
-                            color={group.color as any}
+                            color={group.color}
                           />
                         </div>
                         <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{group.items.reduce((sum, item) => sum + item.count, 0)}</span>
@@ -206,7 +207,7 @@ export function Sidebar() {
                               )}
                               title={tag.label}
                             >
-                              <TagPill tag={tag.label} size="sm" variant="gradient" color={tag.color as any} />
+                              <TagPill tag={tag.label} size="sm" variant="gradient" color={tag.color} />
                               <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{tag.count}</span>
                             </button>
                           ))}

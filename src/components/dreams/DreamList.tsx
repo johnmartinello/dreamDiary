@@ -203,7 +203,7 @@ export function DreamList() {
                               tag={tag.label} 
                               size="sm" 
                               variant="gradient"
-                              color={getTagColor(tag.id) as any}
+                              color={getTagColor(tag.id)}
                               tooltip={`${tag.categoryId} > ${tag.label}`}
                             />
                           ))}

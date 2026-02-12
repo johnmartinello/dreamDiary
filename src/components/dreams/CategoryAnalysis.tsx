@@ -2,17 +2,19 @@ import { useMemo, useState } from 'react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
+import { TagPill } from './TagPill';
 import { useI18n } from '../../hooks/useI18n';
 import { useDreamStore } from '../../store/dreamStore';
 import { cn } from '../../utils';
 import { getCategoryName, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
+import type { CategoryColor } from '../../types/taxonomy';
 
 interface TagStats {
   id: string;
   label: string;
   categoryId: string;
   categoryLabel: string;
-  color: string;
+  color: CategoryColor;
   count: number;
   percentage: number;
   coOccurrences: Record<string, number>;
@@ -33,7 +35,7 @@ interface TagRelationship {
 interface CategoryTagSummary {
   categoryId: string;
   categoryLabel: string;
-  color: string;
+  color: CategoryColor;
   totalTags: number;
   totalUsage: number;
   mostUsedTags: TagStats[];
@@ -41,7 +43,7 @@ interface CategoryTagSummary {
 
 export function CategoryAnalysis() {
   const { t } = useI18n();
-  const { dreams, categories } = useDreamStore();
+  const { dreams, categories, getTagColor } = useDreamStore();
   const [activeTab, setActiveTab] = useState<'overview' | 'tags' | 'relationships' | 'categories' | 'trends'>('overview');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [textFilter, setTextFilter] = useState('');
@@ -59,7 +61,7 @@ export function CategoryAnalysis() {
             label: tag.label,
             categoryId: tag.categoryId,
             categoryLabel: getCategoryName(tag.categoryId, categories, t('uncategorized')),
-            color: categories.find((category) => category.id === tag.categoryId)?.color || 'violet',
+            color: getTagColor(tag.id),
             count: 0,
             percentage: 0,
             coOccurrences: {},
@@ -160,7 +162,7 @@ export function CategoryAnalysis() {
         mostUsedTags: summary.mostUsedTags.sort((a, b) => b.count - a.count).slice(0, 5),
       }))
       .sort((a, b) => b.totalUsage - a.totalUsage);
-  }, [categories, tagStats, t]);
+  }, [categories, getTagColor, tagStats, t]);
 
   const filteredTags = useMemo(() => {
     let list = tagStats;
@@ -293,9 +295,13 @@ export function CategoryAnalysis() {
               </div>
               <div className="flex flex-wrap gap-2 mt-4">
                 {summary.mostUsedTags.map((tag) => (
-                  <span key={tag.id} className="px-3 py-1 bg-white/10 rounded-full text-sm text-white border border-white/20">
-                    {tag.label} ({tag.count})
-                  </span>
+                  <TagPill
+                    key={tag.id}
+                    tag={`${tag.label} (${tag.count})`}
+                    size="sm"
+                    variant="gradient"
+                    color={tag.color}
+                  />
                 ))}
               </div>
             </Card>

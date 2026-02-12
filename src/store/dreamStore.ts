@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Dream, DreamStore, TagWithColor, GraphData, GraphFilters } from '../types';
 import type { CategoryColor, UserCategory } from '../types/taxonomy';
-import { getCategoryColor, UNCATEGORIZED_CATEGORY_ID } from '../types/taxonomy';
+import { getCategoryColor, normalizeCategoryColor, UNCATEGORIZED_CATEGORY_ID } from '../types/taxonomy';
 import { storage } from '../utils/storage';
 import { generateId, getCurrentTimeString } from '../utils';
 
@@ -202,7 +202,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
     const category: UserCategory = {
       id: uniqueId,
       name: categoryInput.name.trim(),
-      color: categoryInput.color,
+      color: normalizeCategoryColor(categoryInput.color),
       createdAt: now,
       updatedAt: now,
     };
@@ -224,6 +224,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
               ...category,
               ...updates,
               name: (updates.name ?? category.name).trim(),
+              color: normalizeCategoryColor(updates.color ?? category.color),
               updatedAt: new Date().toISOString(),
             }
           : category

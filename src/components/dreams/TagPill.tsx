@@ -1,5 +1,7 @@
+import type { CSSProperties, MouseEvent } from 'react';
 import { X } from 'lucide-react';
 import { cn } from '../../utils';
+import { resolveCategoryColorHex, type CategoryColor } from '../../types/taxonomy';
 
 interface TagPillProps {
   tag: string;
@@ -7,7 +9,7 @@ interface TagPillProps {
   removable?: boolean;
   onRemove?: (tag: string) => void;
   variant?: 'default' | 'gradient' | 'outline';
-  color?: 'cyan' | 'purple' | 'pink' | 'emerald' | 'amber' | 'blue' | 'indigo' | 'violet' | 'rose' | 'teal' | 'lime' | 'orange' | 'red' | 'green' | 'yellow';
+  color?: CategoryColor;
   tooltip?: string;
 }
 
@@ -20,45 +22,48 @@ export function TagPill({
   color = 'cyan',
   tooltip
 }: TagPillProps) {
-  const handleRemove = (e: React.MouseEvent) => {
+  const handleRemove = (e: MouseEvent) => {
     e.stopPropagation();
     onRemove?.(tag);
   };
 
-  const colorClasses = {
-    cyan: 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 border border-gray-400/30 hover:border-gray-300/50',
-    purple: 'bg-gradient-to-r from-purple-500/20 to-purple-600/20 text-purple-300 border border-gray-400/30 hover:border-gray-300/50',
-    pink: 'bg-gradient-to-r from-pink-500/20 to-pink-600/20 text-pink-300 border border-gray-400/30 hover:border-gray-300/50',
-    emerald: 'bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 text-emerald-300 border border-gray-400/30 hover:border-gray-300/50',
-    amber: 'bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-300 border border-gray-400/30 hover:border-gray-300/50',
-    blue: 'bg-gradient-to-r from-blue-500/20 to-blue-600/20 text-blue-300 border border-gray-400/30 hover:border-gray-300/50',
-    indigo: 'bg-gradient-to-r from-indigo-500/20 to-indigo-600/20 text-indigo-300 border border-gray-400/30 hover:border-gray-300/50',
-    violet: 'bg-gradient-to-r from-violet-500/20 to-violet-600/20 text-violet-300 border border-gray-400/30 hover:border-gray-300/50',
-    rose: 'bg-gradient-to-r from-rose-500/20 to-rose-600/20 text-rose-300 border border-gray-400/30 hover:border-gray-300/50',
-    teal: 'bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-300 border border-gray-400/30 hover:border-gray-300/50',
-    lime: 'bg-gradient-to-r from-lime-500/20 to-lime-600/20 text-lime-300 border border-gray-400/30 hover:border-gray-300/50',
-    orange: 'bg-gradient-to-r from-orange-500/20 to-orange-600/20 text-orange-300 border border-gray-400/30 hover:border-gray-300/50',
-    red: 'bg-gradient-to-r from-red-500/20 to-red-600/20 text-red-300 border border-gray-400/30 hover:border-gray-300/50',
-    green: 'bg-gradient-to-r from-green-500/20 to-green-600/20 text-green-300 border border-gray-400/30 hover:border-gray-300/50',
-    yellow: 'bg-gradient-to-r from-yellow-500/20 to-yellow-600/20 text-yellow-300 border border-gray-400/30 hover:border-gray-300/50',
-  };
+  const hex = resolveCategoryColorHex(color);
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const rgba = (alpha: number) => `rgba(${r}, ${g}, ${b}, ${alpha})`;
 
-  const variantClasses = {
-    default: 'glass text-gray-100 border border-white/20 hover:glass-hover hover:border-gray-300/50',
-    gradient: colorClasses[color],
-    outline: 'bg-transparent text-gray-300 border border-gray-400/30 hover:bg-white/5 hover:border-gray-300/50',
+  const variantStyles: Record<NonNullable<TagPillProps['variant']>, CSSProperties> = {
+    default: {
+      background: `linear-gradient(145deg, ${rgba(0.18)}, ${rgba(0.1)})`,
+      borderColor: rgba(0.35),
+      color: '#f1f5f9',
+      boxShadow: `inset 0 1px 0 ${rgba(0.12)}`,
+    },
+    gradient: {
+      background: `linear-gradient(145deg, ${rgba(0.3)}, ${rgba(0.12)})`,
+      borderColor: rgba(0.5),
+      color: '#f8fafc',
+      boxShadow: `0 6px 16px ${rgba(0.22)}, inset 0 1px 0 ${rgba(0.14)}`,
+    },
+    outline: {
+      background: rgba(0.08),
+      borderColor: rgba(0.45),
+      color: '#e2e8f0',
+      boxShadow: `inset 0 0 0 1px ${rgba(0.18)}`,
+    },
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 font-medium rounded-full px-3 py-1 transition-all duration-300 ease-out border backdrop-blur-sm',
-        variantClasses[variant],
+        'inline-flex items-center gap-1 font-medium rounded-full px-3 py-1 transition-all duration-300 ease-out border backdrop-blur-sm hover:-translate-y-[1px] hover:brightness-110',
         {
           'text-xs': size === 'sm',
           'text-sm': size === 'md',
         }
       )}
+      style={variantStyles[variant]}
       title={tooltip}
     >
       <span className="truncate">{tag}</span>

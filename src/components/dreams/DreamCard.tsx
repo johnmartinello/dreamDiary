@@ -20,14 +20,15 @@ export function DreamCard({ dream }: DreamCardProps) {
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1"
+      variant="glass"
+      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:-translate-y-1 border border-white/10"
       onClick={handleClick}
     >
       <CardHeader className="pb-3">
-        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+        <h3 className="text-lg font-semibold text-white line-clamp-2">
           {dream.title}
         </h3>
-        <div className="flex items-center text-sm text-gray-500 mt-2 gap-3">
+        <div className="flex items-center text-sm text-gray-300 mt-2 gap-3">
           <span className="flex items-center">
             <Calendar className="w-4 h-4 mr-1" />
             {formatDate(dream.date, language)}
@@ -43,7 +44,7 @@ export function DreamCard({ dream }: DreamCardProps) {
       
       <CardContent>
         {dream.description && (
-          <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+          <p className="text-gray-200 text-sm line-clamp-3 mb-4">
             {dream.description}
           </p>
         )}
@@ -61,7 +62,7 @@ export function DreamCard({ dream }: DreamCardProps) {
               />
             ))}
             {dream.tags.length > 3 && (
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-300">
                 +{dream.tags.length - 3} more
               </span>
             )}
