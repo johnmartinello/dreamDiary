@@ -1,8 +1,8 @@
 version: 0.0.0
 files:
-  - url: DreamWeave-Setup-0.0.0.exe
-    sha512: lu6wwJGdnxsi/WZoF5nrAl8uOJxQgGZiCf55xI3Ebh3jTaj7sCLSUkVuHUQJp4p4ADRrgae7FAriVZKRXGKcXA==
-    size: 94312779
-path: DreamWeave-Setup-0.0.0.exe
-sha512: lu6wwJGdnxsi/WZoF5nrAl8uOJxQgGZiCf55xI3Ebh3jTaj7sCLSUkVuHUQJp4p4ADRrgae7FAriVZKRXGKcXA==
-releaseDate: '2025-12-03T22:35:25.042Z'
+  - url: Dream-Diary-Setup-0.0.0.exe
+    sha512: L7FYfDzIbUpEmnjZHcIGVHgP1dPX1O4YDdbWo7tb0mNQJDdtlq88w77HHPNJ16SlI5NzwcimMA6h1Vgtx9Cbqw==
+    size: 94311817
+path: Dream-Diary-Setup-0.0.0.exe
+sha512: L7FYfDzIbUpEmnjZHcIGVHgP1dPX1O4YDdbWo7tb0mNQJDdtlq88w77HHPNJ16SlI5NzwcimMA6h1Vgtx9Cbqw==
+releaseDate: '2026-02-12T23:55:09.501Z'

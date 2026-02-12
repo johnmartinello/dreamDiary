@@ -1,8 +1,8 @@
 directories:
   output: release
   buildResources: build
-appId: com.dreamweave.app
-productName: DreamWeave
+appId: com.dreamdiary.app
+productName: Dream Diary
 files:
   - filter:
       - dist/**/*

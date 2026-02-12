@@ -72,7 +72,8 @@
     },
     "win": {
       "target": "nsis",
-      "compression": "maximum"
+      "compression": "maximum",
+      "signAndEditExecutable": false
     },
     "nsis": {
       "oneClick": false,
