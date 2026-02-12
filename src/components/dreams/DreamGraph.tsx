@@ -404,7 +404,7 @@ export function DreamGraph() {
                         ))}
                         {filteredDreams.length > 8 && (
                           <div className="text-xs text-gray-400 text-center py-1">
-                            +{filteredDreams.length - 8} more results
+                            {t('moreResults', { count: filteredDreams.length - 8 })}
                           </div>
                         )}
                       </div>
@@ -497,8 +497,8 @@ export function DreamGraph() {
                 <div class="bg-black/90 p-3 rounded-lg border border-white/20">
                   <div class="font-semibold text-white">${node.title}</div>
                   <div class="text-gray-300 text-sm">${formatDateForInput(node.date)}</div>
-                  <div class="text-gray-400 text-xs mt-1">Citations: ${node.citationCount}</div>
-                  ${node.tags.length > 0 ? `<div class=\"text-gray-400 text-xs mt-1\">Tags: ${node.tags.map(t => t.label).join(', ')}</div>` : ''}
+                  <div class="text-gray-400 text-xs mt-1">${t('citations')}: ${node.citationCount}</div>
+                  ${node.tags.length > 0 ? `<div class=\"text-gray-400 text-xs mt-1\">${t('tags')}: ${node.tags.map(t => t.label).join(', ')}</div>` : ''}
                 </div>
               `}
               nodeColor={getNodeColor}
@@ -542,7 +542,7 @@ export function DreamGraph() {
                   />
                 ))}
                 {hoveredNode.tags.length > 3 && (
-                  <span className="text-xs text-gray-400">+{hoveredNode.tags.length - 3} more</span>
+                  <span className="text-xs text-gray-400">{t('moreResults', { count: hoveredNode.tags.length - 3 })}</span>
                 )}
               </div>
             )}

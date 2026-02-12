@@ -3,6 +3,7 @@ import { Calendar, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { cn } from '../../utils';
+import { useI18n } from '../../hooks/useI18n';
 
 interface DateFilterProps {
   onDateRangeChange: (startDate: string | null, endDate: string | null) => void;
@@ -13,6 +14,7 @@ interface DateFilterProps {
 
 
 export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilterProps) {
+  const { t, tArray, language } = useI18n();
   const [showDateMenu, setShowDateMenu] = useState(false);
   const [isSelectingStart, setIsSelectingStart] = useState(true);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -71,7 +73,7 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
   const formatDateForDisplay = (dateString: string | null) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+    return date.toLocaleDateString(language, {
       month: 'short', 
       day: 'numeric', 
       year: 'numeric' 
@@ -90,10 +92,7 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
 
   // Generate months for dropdown
   const generateMonthOptions = () => {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
+    const months = tArray('months');
     return months.map((month, index) => ({
       value: index,
       label: month
@@ -187,7 +186,7 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
       }
       return `${formatDateForDisplay(startDate)} - ${formatDateForDisplay(endDate)}`;
     } else if (startDate) {
-      return `From ${formatDateForDisplay(startDate)}`;
+      return `${t('start')} ${formatDateForDisplay(startDate)}`;
     }
     return '';
   };
@@ -209,7 +208,7 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
         {(startDate || endDate) && (
           <button
             type="button"
-            aria-label="Clear date filter"
+            aria-label={t('clearFilters')}
             onClick={(e) => {
               e.stopPropagation();
               handleClearFilter();
@@ -228,11 +227,11 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
                          {/* Header */}
              <div className="text-center mb-4">
                <div className="text-sm text-gray-300 mb-1">
-                 {isSelectingStart ? 'Select start date' : 'Select end date'}
+                 {isSelectingStart ? t('selectStartDate') : t('selectEndDate')}
                </div>
                <div className="text-xs text-gray-400">
-                 {tempStartDate && `Start: ${formatDateForDisplay(tempStartDate)}`}
-                 {tempStartDate && tempEndDate && ` • End: ${formatDateForDisplay(tempEndDate)}`}
+                 {tempStartDate && `${t('start')} ${formatDateForDisplay(tempStartDate)}`}
+                 {tempStartDate && tempEndDate && ` • ${t('end')} ${formatDateForDisplay(tempEndDate)}`}
                </div>
              </div>
 
@@ -300,7 +299,7 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
             
             {/* Calendar Grid */}
             <div className="grid grid-cols-7 gap-1 mb-3">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              {tArray('weekdays').map(day => (
                 <div key={day} className="text-center text-xs text-gray-400 py-1">
                   {day}
                 </div>
@@ -337,7 +336,7 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
                  disabled={!tempStartDate || !tempEndDate}
                  className="flex-1 text-xs"
                >
-                 Apply Filter
+                 {t('applyFilter')}
                </Button>
                <Button
                  variant="ghost"
@@ -345,7 +344,7 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
                  onClick={handleCancel}
                  className="flex-1 text-xs"
                >
-                 Cancel
+                 {t('cancel')}
                </Button>
              </div>
           </Card>

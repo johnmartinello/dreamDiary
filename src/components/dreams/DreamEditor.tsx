@@ -350,7 +350,8 @@ export function DreamEditor() {
       }
     } catch (error) {
       console.error('Error generating categories:', error);
-      alert(`Failed to generate categories: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : t('errorOccurred');
+      alert(`${t('failedToGenerateTags')}: ${errorMessage}`);
     } finally {
       setIsGeneratingTags(false);
     }
@@ -374,7 +375,8 @@ export function DreamEditor() {
       }
     } catch (error) {
       console.error('Error generating title:', error);
-      alert(`Failed to generate title: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      const errorMessage = error instanceof Error ? error.message : t('errorOccurred');
+      alert(`${t('failedToGenerateTitle')}: ${errorMessage}`);
     } finally {
       setIsGeneratingTitle(false);
     }
@@ -1329,7 +1331,7 @@ export function DreamEditor() {
             
             {/* Calendar Grid */}
             <div className="grid grid-cols-7 gap-1 mb-3">
-              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+              {tArray('weekdays').map(day => (
                 <div key={day} className="text-center text-xs text-gray-400 py-1">
                   {day}
                 </div>

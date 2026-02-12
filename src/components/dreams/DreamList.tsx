@@ -65,19 +65,19 @@ export function DreamList() {
               <div>
                 <h2 className="text-3xl font-bold text-white mb-1">
                   {searchQuery 
-                    ? `Search results for "${searchQuery}"`
+                    ? t('searchResultsFor', { query: searchQuery })
                     : selectedTag 
-                    ? `Dreams tagged with "${selectedTag}"` 
+                    ? t('dreamsTaggedWith', { tag: selectedTag })
                     : dateRange.startDate || dateRange.endDate
-                    ? 'Filtered dreams'
+                    ? t('filteredDreams')
                     : ''}
                 </h2>
                 <p className="text-gray-300">
                   {dreams.length === 0
                     ? searchQuery 
-                      ? 'No dreams found.'
-                      : 'No dreams found. Start by logging your first dream.'
-                    : `${dreams.length} dream${dreams.length === 1 ? '' : 's'} found`}
+                      ? t('noDreamsFound')
+                      : t('createFirstDream')
+                    : t('dreamsFound', { count: dreams.length })}
                 </p>
               </div>
             </div>
@@ -117,21 +117,21 @@ export function DreamList() {
           <Card variant="glass" className="text-center py-16">
             <h3 className="text-xl font-semibold text-white mb-3">
               {searchQuery 
-                ? 'No dreams found matching your search'
+                ? t('noDreamsMatchingSearch')
                 : selectedTag 
-                ? 'No dreams with this tag' 
+                ? t('noDreamsWithTag')
                 : dateRange.startDate || dateRange.endDate
-                ? 'No dreams found in selected date range'
-                : 'No dreams yet'}
+                ? t('noDreamsInDateRange')
+                : t('noDreams')}
             </h3>
             <p className="text-gray-300 max-w-md mx-auto">
               {searchQuery
-                ? 'Try adjusting your search terms or browse all dreams.'
+                ? t('tryAdjustingSearch')
                 : selectedTag
-                ? 'Try selecting a different tag or create a new dream to get started.'
+                ? t('tryDifferentTag')
                 : dateRange.startDate || dateRange.endDate
-                ? 'Try adjusting your date range or browse all dreams.'
-                : 'Click "Create Dream" to start logging your dreams.'}
+                ? t('tryAdjustingDateRange')
+                : t('clickCreateDream')}
             </p>
           </Card>
         ) : (
@@ -194,7 +194,7 @@ export function DreamList() {
                           ))}
                           {dream.tags.length > 3 && (
                             <span className="text-xs text-gray-400 bg-white/5 px-2 py-1 rounded-full border border-white/10">
-                              +{dream.tags.length - 3} more
+                              {t('moreResults', { count: dream.tags.length - 3 })}
                             </span>
                           )}
                         </div>

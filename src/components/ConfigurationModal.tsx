@@ -14,7 +14,7 @@ import type { AIProvider } from '../types';
 export function ConfigurationModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const { aiConfig, updateAIConfig, setAIProvider } = useDreamStore();
   const { language, setLanguage } = useLanguageStore();
-  const { t } = useI18n();
+  const { t, tArray } = useI18n();
   
   const [enabled, setEnabled] = useState(aiConfig.enabled);
   const [provider, setProvider] = useState<AIProvider>(aiConfig.provider);
@@ -80,24 +80,13 @@ export function ConfigurationModal({ isOpen, onClose }: { isOpen: boolean; onClo
         return {
           title: t('geminiInstructions.title'),
           description: t('geminiInstructions.description'),
-          instructions: [
-            '1. Visit Google AI Studio (https://aistudio.google.com/)',
-            '2. Sign in and click "Get API Key"',
-            '3. Copy your API key and paste it below',
-            '4. Enter your preferred model name (e.g., gemini-2.0-flash)'
-          ]
+          instructions: tArray('geminiInstructions.steps')
         };
       case 'lmstudio':
         return {
           title: t('lmStudioInstructions.title'),
           description: t('lmStudioInstructions.description'),
-          instructions: [
-            '1. Download and install LM Studio',
-            '2. Load your preferred model',
-            '3. Start the local server (usually runs on localhost:1234)',
-            '4. Enter the completion endpoint URL',
-            '5. Enter your model name as configured in LM Studio'
-          ]
+          instructions: tArray('lmStudioInstructions.steps')
         };
       default:
         return { title: '', description: '', instructions: [] };

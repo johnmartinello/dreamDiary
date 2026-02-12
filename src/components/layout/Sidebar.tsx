@@ -180,8 +180,8 @@ export function Sidebar() {
                           <button
                             className="text-white/60 hover:text-white"
                             onClick={(e) => { e.stopPropagation(); toggleCategory(categoryId); }}
-                            aria-label={isOpen ? 'Collapse' : 'Expand'}
-                            title={isOpen ? 'Collapse' : 'Expand'}
+                            aria-label={isOpen ? t('collapse') : t('expand')}
+                            title={isOpen ? t('collapse') : t('expand')}
                           >
                             {isOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                           </button>

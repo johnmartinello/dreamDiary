@@ -245,7 +245,7 @@ export function DreamCalendarHeatmap() {
                 className="h-8 w-8 p-0 text-white/70 hover:text-white/90"
                 onClick={() => setSelectedYear((prev) => Math.max(minYear, prev - 1))}
                 disabled={selectedYear <= minYear}
-                aria-label={`Previous year (${selectedYear - 1})`}
+                aria-label={t('previousYear', { year: selectedYear - 1 })}
               >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
@@ -256,7 +256,7 @@ export function DreamCalendarHeatmap() {
                 className="h-8 w-8 p-0 text-white/70 hover:text-white/90"
                 onClick={() => setSelectedYear((prev) => Math.min(maxYear, prev + 1))}
                 disabled={selectedYear >= maxYear}
-                aria-label={`Next year (${selectedYear + 1})`}
+                aria-label={t('nextYear', { year: selectedYear + 1 })}
               >
                 <ChevronRight className="w-4 h-4" />
               </Button>
