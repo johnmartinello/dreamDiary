@@ -154,7 +154,8 @@ const parseImportData = (jsonString: string): { dreams: Dream[]; trashedDreams: 
         typeof dream.date === 'string' &&
         typeof dream.description === 'string' &&
         Array.isArray(dream.tags) &&
-        Array.isArray(dream.citedDreams)
+        Array.isArray(dream.citedDreams) &&
+        (dream.citedTags === undefined || Array.isArray(dream.citedTags))
       );
     };
     

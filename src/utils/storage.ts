@@ -106,6 +106,7 @@ const normalizeDream = (dream: any): Dream => {
     ...dream,
     tags: normalizedTags,
     citedDreams: Array.isArray(dream.citedDreams) ? dream.citedDreams : [],
+    citedTags: Array.isArray(dream.citedTags) ? dream.citedTags : [],
   };
 };
 

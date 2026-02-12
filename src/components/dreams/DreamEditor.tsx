@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Calendar, Trash2, Edit3, AlertTriangle, Sparkles, X, Check, Link, Search } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Trash2, Edit3, AlertTriangle, Sparkles, X, Check, Link, Search, Tag } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
 import { useI18n } from '../../hooks/useI18n';
 import { Button } from '../ui/Button';
@@ -9,7 +9,7 @@ import { Input } from '../ui/Input';
 import { Textarea } from '../ui/Textarea';
 import { TagPill } from './TagPill';
 import { Card } from '../ui/Card';
-import { formatDateForInput, getCurrentDateString } from '../../utils';
+import { formatDateForInput, getCurrentDateString, formatTime } from '../../utils';
 import { useDebounce } from '@uidotdev/usehooks';
 import { cn } from '../../utils';
 import { buildTagId, getCategoryName, UNCATEGORIZED_CATEGORY_ID, CATEGORY_COLORS } from '../../types/taxonomy';
@@ -87,6 +87,7 @@ export function DreamEditor() {
   const [showCitationSearch, setShowCitationSearch] = useState(false);
   const [citationSearchQuery, setCitationSearchQuery] = useState('');
   const [citedDreams, setCitedDreams] = useState<string[]>([]);
+  const [citedTags, setCitedTags] = useState<string[]>([]);
 
   // Inline mention ("@") state
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -97,7 +98,7 @@ export function DreamEditor() {
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
-  const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 240 });
+  const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 320 });
 
   // Modal refs (no longer using useClickOutside)
   const deleteModalRef = useRef<HTMLDivElement>(null);
@@ -118,6 +119,7 @@ export function DreamEditor() {
       setDescription(dream.description);
       setTags(dream.tags);
       setCitedDreams(dream.citedDreams || []);
+      setCitedTags(dream.citedTags || []);
       
       // Initialize date picker state with dream's date
       if (dream.date) {
@@ -232,18 +234,32 @@ export function DreamEditor() {
       const mentionsFromDescription: string[] = dreams
         .filter((d) => d.id !== selectedDreamId && description.includes(`@${d.title}`))
         .map((d) => d.id);
+
+      // Detect tag citations created via inline "@tag" mentions and sync with citations
+      const tagMentionsFromDescription: string[] = allKnownTags
+        .filter((tag) => description.includes(`@${tag.label}`))
+        .map((tag) => tag.id);
       
       // Remove citations that no longer exist in the description
       const updatedCitations = citedDreams.filter(citationId => {
         const citedDream = dreams.find(d => d.id === citationId);
         return citedDream && description.includes(`@${citedDream.title}`);
       });
+
+      const updatedTagCitations = citedTags.filter((citationTagId) => {
+        const citedTag = allKnownTags.find((tag) => tag.id === citationTagId);
+        return citedTag && description.includes(`@${citedTag.label}`);
+      });
       
       // Add new citations from mentions
       const finalCitations = Array.from(new Set([...updatedCitations, ...mentionsFromDescription]));
+      const finalTagCitations = Array.from(new Set([...updatedTagCitations, ...tagMentionsFromDescription]));
       
       if (JSON.stringify(finalCitations) !== JSON.stringify(citedDreams)) {
         setCitedDreams(finalCitations);
+      }
+      if (JSON.stringify(finalTagCitations) !== JSON.stringify(citedTags)) {
+        setCitedTags(finalTagCitations);
       }
 
       // Only save if the debounced values are different from the original dream values
@@ -253,7 +269,8 @@ export function DreamEditor() {
         (debouncedDate !== dream.date && debouncedDate !== '') ||
         (debouncedDescription !== dream.description && debouncedDescription !== '') ||
         JSON.stringify(tags) !== JSON.stringify(dream.tags) ||
-        JSON.stringify(finalCitations) !== JSON.stringify(dream.citedDreams || []);
+        JSON.stringify(finalCitations) !== JSON.stringify(dream.citedDreams || []) ||
+        JSON.stringify(finalTagCitations) !== JSON.stringify(dream.citedTags || []);
 
       if (hasChanges) {
         setIsSaving(true);
@@ -263,7 +280,8 @@ export function DreamEditor() {
           date: debouncedDate,
           description: description, // Use current description instead of debounced
           tags,
-          citedDreams: finalCitations
+          citedDreams: finalCitations,
+          citedTags: finalTagCitations,
         });
         updateDream(selectedDreamId, {
           title: debouncedTitle,
@@ -271,11 +289,12 @@ export function DreamEditor() {
           description: description, // Use current description instead of debounced
           tags,
           citedDreams: finalCitations,
+          citedTags: finalTagCitations,
         });
         setTimeout(() => setIsSaving(false), 1000);
       }
     }
-  }, [debouncedTitle, debouncedDate, debouncedDescription, tags, citedDreams, dream, selectedDreamId, updateDream, isInitialized, description]);
+  }, [debouncedTitle, debouncedDate, debouncedDescription, tags, citedDreams, citedTags, dream, selectedDreamId, updateDream, isInitialized, description, allKnownTags, dreams]);
 
   const handleAddTag = (labelOverride?: string, categoryOverride?: string) => {
     const label = (labelOverride || newTag).trim();
@@ -480,7 +499,8 @@ export function DreamEditor() {
         date !== dream.date ||
         description !== dream.description ||
         JSON.stringify(tags) !== JSON.stringify(dream.tags) ||
-        JSON.stringify(citedDreams) !== JSON.stringify(dream.citedDreams || []);
+        JSON.stringify(citedDreams) !== JSON.stringify(dream.citedDreams || []) ||
+        JSON.stringify(citedTags) !== JSON.stringify(dream.citedTags || []);
 
       if (hasChanges) {
         setIsSaving(true);
@@ -490,7 +510,8 @@ export function DreamEditor() {
           date,
           description,
           tags,
-          citedDreams
+          citedDreams,
+          citedTags,
         });
         updateDream(selectedDreamId, {
           title,
@@ -498,6 +519,7 @@ export function DreamEditor() {
           description,
           tags,
           citedDreams,
+          citedTags,
         });
         setTimeout(() => setIsSaving(false), 1000);
       }
@@ -522,22 +544,59 @@ export function DreamEditor() {
     }
   };
 
-  const getFilteredDreamsForCitation = () => {
-    return dreams.filter(d => 
-      d.id !== selectedDreamId && // Don't show current dream
-      !citedDreams.includes(d.id) && // Don't show already cited dreams
-      (citationSearchQuery === '' || 
-       d.title.toLowerCase().includes(citationSearchQuery.toLowerCase()) ||
-       d.description.toLowerCase().includes(citationSearchQuery.toLowerCase()))
-    );
+  const handleRemoveTagCitation = (tagId: string) => {
+    setCitedTags(citedTags.filter((id) => id !== tagId));
+  };
+
+  const getFilteredCitationItems = () => {
+    const query = citationSearchQuery.trim().toLowerCase();
+    const dreamItems = dreams
+      .filter((d) => d.id !== selectedDreamId)
+      .filter((d) => !citedDreams.includes(d.id))
+      .filter((d) =>
+        !query ||
+        d.title.toLowerCase().includes(query) ||
+        d.description.toLowerCase().includes(query)
+      )
+      .map((d) => ({
+        kind: 'dream' as const,
+        id: d.id,
+        title: d.title,
+        subtitle: d.date,
+        preview: d.description.substring(0, 100),
+      }));
+
+    const tagItems = allKnownTags
+      .filter((tag) => !citedTags.includes(tag.id))
+      .filter((tag) => !query || tag.label.toLowerCase().includes(query))
+      .map((tag) => ({
+        kind: 'tag' as const,
+        id: tag.id,
+        title: tag.label,
+        subtitle: getCategoryName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID, categories, t('uncategorized')),
+      }));
+
+    return [...dreamItems, ...tagItems].slice(0, 30);
   };
 
   // Inline mention helpers
-  const getFilteredMentionDreams = () => {
+  const getFilteredMentionItems = () => {
     const query = mentionQuery.trim().toLowerCase();
-    const list = dreams.filter((d) => d.id !== selectedDreamId);
-    if (!query) return list.slice(0, 20);
-    return list.filter((d) => d.title.toLowerCase().includes(query)).slice(0, 20);
+    const dreamMentions = dreams
+      .filter((d) => d.id !== selectedDreamId)
+      .filter((d) => !query || d.title.toLowerCase().includes(query))
+      .slice(0, 12)
+      .map((d) => ({ kind: 'dream' as const, id: d.id, label: d.title, secondary: d.date }));
+    const tagMentions = allKnownTags
+      .filter((tag) => !query || tag.label.toLowerCase().includes(query))
+      .slice(0, 8)
+      .map((tag) => ({
+        kind: 'tag' as const,
+        id: tag.id,
+        label: tag.label,
+        secondary: getCategoryName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID, categories, t('uncategorized')),
+      }));
+    return [...dreamMentions, ...tagMentions].slice(0, 20);
   };
 
   const updateMentionDropdownPosition = () => {
@@ -582,33 +641,35 @@ export function DreamEditor() {
     const caretTop = spanRect.top - ta.scrollTop;
     const caretLeft = spanRect.left - ta.scrollLeft;
 
-    const left = Math.max(12, Math.min(textareaRect.left + caretLeft, window.innerWidth - 260));
+    const dropdownWidth = Math.min(360, Math.max(300, ta.clientWidth * 0.6));
+    const left = Math.max(12, Math.min(textareaRect.left + caretLeft, window.innerWidth - dropdownWidth - 12));
     const top = Math.max(12, Math.min(textareaRect.top + caretTop + 24, window.innerHeight - 64));
 
-    setMentionPosition({ top, left, width: 240 });
+    setMentionPosition({ top, left, width: dropdownWidth });
     document.body.removeChild(div);
   };
 
-  const insertMention = (d: { id: string; title: string }) => {
+  const insertMention = (item: { kind: 'dream' | 'tag'; id: string; label: string }) => {
     const ta = textareaRef.current;
     if (!ta || mentionStart === null) return;
     const caret = ta.selectionStart || 0;
     const before = description.substring(0, mentionStart);
-    const between = description.substring(mentionStart, caret);
     const after = description.substring(caret);
-    const hasAt = between.startsWith('@') ? '' : '@';
-    const insertText = `${hasAt}${d.title}`;
-    const newValue = `${before}@${insertText.replace(/^@/, '')}${after}`;
+    const mentionText = `@${item.label}`;
+    const newValue = `${before}${mentionText}${after}`;
     setDescription(newValue);
     // Move caret to end of inserted text
-    const nextPos = before.length + insertText.length + 1; // include '@'
+    const nextPos = before.length + mentionText.length;
     requestAnimationFrame(() => {
       ta.focus();
       ta.setSelectionRange(nextPos, nextPos);
     });
-    // Add citation id locally (dedup later in autosave)
-    if (!citedDreams.includes(d.id)) {
-      setCitedDreams([...citedDreams, d.id]);
+    // Add citation id locally (dedup later in autosave).
+    if (item.kind === 'dream' && !citedDreams.includes(item.id)) {
+      setCitedDreams([...citedDreams, item.id]);
+    }
+    if (item.kind === 'tag' && !citedTags.includes(item.id)) {
+      setCitedTags([...citedTags, item.id]);
     }
     setMentionOpen(false);
     setMentionQuery('');
@@ -756,15 +817,23 @@ export function DreamEditor() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-300 ml-4">
-                  <Calendar className="w-4 h-4 text-gray-400" />
-                  <Button
-                    variant="ghost"
-                    onClick={() => setShowDateMenu(!showDateMenu)}
-                    className="text-gray-300 hover:text-gray-200 px-2 py-1 relative"
-                  >
-                    {formatDateForInput(date)}
-                  </Button>
+                <div className="flex items-center gap-3 text-sm text-gray-300 ml-4">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4 text-gray-400" />
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowDateMenu(!showDateMenu)}
+                      className="text-gray-300 hover:text-gray-200 px-2 py-1 relative"
+                    >
+                      {formatDateForInput(date)}
+                    </Button>
+                  </div>
+                  {dream.time && (
+                    <div className="flex items-center gap-1 text-gray-300 px-2 py-1">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span>{formatTime(dream.time)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -977,7 +1046,7 @@ export function DreamEditor() {
                   if (mentionOpen) {
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
-                      setMentionSelectedIndex((idx) => Math.min(idx + 1, getFilteredMentionDreams().length - 1));
+                      setMentionSelectedIndex((idx) => Math.min(idx + 1, getFilteredMentionItems().length - 1));
                       return;
                     }
                     if (e.key === 'ArrowUp') {
@@ -986,7 +1055,7 @@ export function DreamEditor() {
                       return;
                     }
                     if (e.key === 'Enter') {
-                      const list = getFilteredMentionDreams();
+                      const list = getFilteredMentionItems();
                       if (list.length > 0) {
                         e.preventDefault();
                         insertMention(list[Math.max(0, Math.min(mentionSelectedIndex, list.length - 1))]);
@@ -1018,27 +1087,37 @@ export function DreamEditor() {
               {mentionOpen && createPortal(
                 <div
                   ref={mentionDropdownRef}
-                  className="fixed z-[10000] max-h-56 overflow-y-auto bg-black/90 backdrop-blur rounded-lg border border-white/10 shadow-2xl"
+                  className="fixed z-[10000] max-h-56 overflow-y-auto overflow-x-hidden bg-black/90 backdrop-blur rounded-lg border border-white/10 shadow-2xl"
                   style={{ top: mentionPosition.top, left: mentionPosition.left, width: mentionPosition.width }}
                 >
-                  {getFilteredMentionDreams().length === 0 ? (
+                  {getFilteredMentionItems().length === 0 ? (
                     <div className="px-3 py-2 text-sm text-gray-400">{t('noResults')}</div>
                   ) : (
-                    getFilteredMentionDreams().map((d, idx) => (
+                    getFilteredMentionItems().map((item, idx) => (
                       <div
-                        key={d.id}
+                        key={`${item.kind}-${item.id}`}
                         className={cn(
-                          'px-3 py-2 cursor-pointer text-sm flex items-center justify-between',
+                          'px-3 py-2 cursor-pointer text-sm flex items-center gap-2',
                           idx === mentionSelectedIndex ? 'bg-white/10 text-white' : 'text-gray-200 hover:bg-white/5'
                         )}
                         onMouseDown={(e) => {
                           // prevent textarea blur before we insert
                           e.preventDefault();
-                          insertMention(d);
+                          insertMention(item);
                         }}
                       >
-                        <span className="truncate flex-1">{d.title}</span>
-                        <span className="ml-3 text-xs text-gray-400 w-20 text-right">{d.date}</span>
+                        <div className="min-w-0 flex items-center gap-2">
+                          <span className="whitespace-nowrap shrink-0">
+                            {item.label.length > 25 ? `${item.label.slice(0, 25)}...` : item.label}
+                          </span>
+                          <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/20 text-gray-300">
+                            {item.kind === 'tag' ? t('tags') : t('dream')}
+                          </span>
+                        </div>
+                        <span className="shrink-0 text-xs text-gray-400 max-w-[110px] flex items-center gap-1">
+                          {item.kind === 'tag' ? <Tag className="w-3 h-3" /> : <Link className="w-3 h-3" />}
+                          {item.secondary}
+                        </span>
                       </div>
                     ))
                   )}
@@ -1072,31 +1151,52 @@ export function DreamEditor() {
                   <Input
                     value={citationSearchQuery}
                     onChange={(e) => setCitationSearchQuery(e.target.value)}
-                    placeholder={t('searchDreamsToCite')}
+                    placeholder={t('searchCitationsToAdd')}
                     variant="transparent"
                     className="bg-white/5 border-white/20 text-white placeholder-gray-400"
                   />
                   
                   <div className="max-h-48 overflow-y-auto space-y-2">
-                    {getFilteredDreamsForCitation().length === 0 ? (
+                    {getFilteredCitationItems().length === 0 ? (
                       <div className="text-center py-4 text-gray-400">
-                        {citationSearchQuery ? t('noDreamsFound') : t('noDreamsAvailable')}
+                        {citationSearchQuery ? t('noResults') : t('noCitationsAvailable')}
                       </div>
                     ) : (
-                      getFilteredDreamsForCitation().map((citedDream) => (
+                      getFilteredCitationItems().map((item) => (
                         <div
-                          key={citedDream.id}
+                          key={`${item.kind}-${item.id}`}
                           className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"
                         >
                           <div className="flex-1">
-                            <div className="font-medium text-white">{citedDream.title}</div>
-                            <div className="text-sm text-gray-400">{citedDream.date}</div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {citedDream.description.substring(0, 100)}...
+                            <div className="flex items-center gap-2">
+                              <div className="font-medium text-white">{item.title}</div>
+                              <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/20 text-gray-300">
+                                {item.kind === 'dream' ? t('dream') : t('tags')}
+                              </span>
                             </div>
+                            <div className="text-sm text-gray-400">{item.subtitle}</div>
+                            {item.kind === 'dream' && item.preview && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {item.preview}...
+                              </div>
+                            )}
+                            {item.kind === 'tag' && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                @{item.title}
+                              </div>
+                            )}
                           </div>
                           <Button
-                            onClick={() => handleAddCitation(citedDream.id)}
+                            onClick={() => {
+                              if (item.kind === 'dream') {
+                                handleAddCitation(item.id);
+                                return;
+                              }
+                              if (!citedTags.includes(item.id)) {
+                                setCitedTags([...citedTags, item.id]);
+                              }
+                              setCitationSearchQuery('');
+                            }}
                             variant="ghost"
                             size="sm"
                             className="text-purple-300 hover:text-purple-200 hover:glass hover:bg-purple-500/10"
@@ -1111,20 +1211,25 @@ export function DreamEditor() {
               )}
 
               {/* Current Citations */}
-              {citedDreams.length > 0 && (
+              {(citedDreams.length > 0 || citedTags.length > 0) && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-gray-300">{t('citedDreams')}:</h4>
+                  <h4 className="text-sm font-medium text-gray-300">{t('citedItems')}:</h4>
                   {citedDreams.map((citedDreamId) => {
                     const citedDream = dreams.find(d => d.id === citedDreamId);
                     if (!citedDream) return null;
                     
                     return (
                       <div
-                        key={citedDreamId}
+                        key={`dream-${citedDreamId}`}
                         className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
                       >
                         <div className="flex-1">
-                          <div className="font-medium text-white">{citedDream.title}</div>
+                          <div className="flex items-center gap-2">
+                            <div className="font-medium text-white">{citedDream.title}</div>
+                            <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/20 text-gray-300">
+                              {t('dream')}
+                            </span>
+                            </div>
                           <div className="text-sm text-gray-400">{citedDream.date}</div>
                           <div className="text-xs text-gray-500 mt-1">
                             {citedDream.description.substring(0, 80)}...
@@ -1132,6 +1237,38 @@ export function DreamEditor() {
                         </div>
                         <Button
                           onClick={() => handleRemoveCitation(citedDreamId)}
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-300 hover:text-red-200 hover:glass hover:bg-red-500/10"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    );
+                  })}
+
+                  {citedTags.map((tagId) => {
+                    const tag = allKnownTags.find((knownTag) => knownTag.id === tagId);
+                    if (!tag) return null;
+                    return (
+                      <div
+                        key={`tag-${tag.id}`}
+                        className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10"
+                      >
+                        <div className="flex items-center gap-2">
+                          <TagPill
+                            tag={tag.label}
+                            size="sm"
+                            variant="gradient"
+                            color={getTagColor(tag.id) as any}
+                            tooltip={`${getCategoryName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID, categories, t('uncategorized'))} > ${tag.label}`}
+                          />
+                          <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/20 text-gray-300">
+                            {t('tags')}
+                          </span>
+                          </div>
+                          <Button
+                          onClick={() => handleRemoveTagCitation(tag.id)}
                           variant="ghost"
                           size="sm"
                           className="text-red-300 hover:text-red-200 hover:glass hover:bg-red-500/10"

@@ -4,9 +4,11 @@ export interface Dream {
   id: string;
   title: string;
   date: string;
+  time?: string; // Format: HH:mm:ss (hour, minute, second)
   description: string;
   tags: DreamTag[];
   citedDreams: string[]; // Array of dream IDs that this dream cites
+  citedTags: string[]; // Array of tag IDs that this dream cites
   createdAt: string;
   updatedAt: string;
   deletedAt?: string; // When the dream was moved to trash
@@ -102,6 +104,7 @@ export interface DreamStore {
   selectedTag: string | null; // tag id
   searchQuery: string;
   dateRange: { startDate: string | null; endDate: string | null };
+  timeRange: { startTime: string | null; endTime: string | null };
   aiConfig: AIConfig;
   graphFilters: GraphFilters;
   
@@ -118,6 +121,7 @@ export interface DreamStore {
   setSelectedTag: (tag: string | null) => void;
   setSearchQuery: (query: string) => void;
   setDateRange: (startDate: string | null, endDate: string | null) => void;
+  setTimeRange: (startTime: string | null, endTime: string | null) => void;
   getFilteredDreams: () => Dream[];
   getAllTags: () => Tag[];
   getAllTagsWithColors: () => TagWithColor[];

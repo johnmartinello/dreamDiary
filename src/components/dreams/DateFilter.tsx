@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Calendar, X } from 'lucide-react';
+import { Calendar, Clock, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { cn } from '../../utils';
@@ -9,11 +9,14 @@ interface DateFilterProps {
   onDateRangeChange: (startDate: string | null, endDate: string | null) => void;
   startDate: string | null;
   endDate: string | null;
+  onTimeRangeChange?: (startTime: string | null, endTime: string | null) => void;
+  startTime?: string | null;
+  endTime?: string | null;
 }
 
 
 
-export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilterProps) {
+export function DateFilter({ onDateRangeChange, startDate, endDate, onTimeRangeChange, startTime, endTime }: DateFilterProps) {
   const { t, tArray, language } = useI18n();
   const [showDateMenu, setShowDateMenu] = useState(false);
   const [isSelectingStart, setIsSelectingStart] = useState(true);
@@ -23,6 +26,11 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
   // Temporary state for date selection (not applied until confirmed)
   const [tempStartDate, setTempStartDate] = useState<string | null>(startDate);
   const [tempEndDate, setTempEndDate] = useState<string | null>(endDate);
+  
+  // Temporary state for time selection
+  const [tempStartTime, setTempStartTime] = useState<string | null>(startTime || null);
+  const [tempEndTime, setTempEndTime] = useState<string | null>(endTime || null);
+  const [showTimeFilter, setShowTimeFilter] = useState(false);
 
   const dateModalRef = useRef<HTMLDivElement>(null);
 
@@ -31,6 +39,12 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
     setTempStartDate(startDate);
     setTempEndDate(endDate);
   }, [startDate, endDate]);
+
+  useEffect(() => {
+    setTempStartTime(startTime || null);
+    setTempEndTime(endTime || null);
+    setShowTimeFilter(!!(startTime || endTime));
+  }, [startTime, endTime]);
 
   // Initialize date picker with existing filter dates when modal opens
   useEffect(() => {
@@ -155,18 +169,31 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
 
   const handleClearFilter = () => {
     onDateRangeChange(null, null);
+    if (onTimeRangeChange) onTimeRangeChange(null, null);
     setTempStartDate(null);
     setTempEndDate(null);
+    setTempStartTime(null);
+    setTempEndTime(null);
+    setShowTimeFilter(false);
   };
 
   const handleApplyFilter = () => {
     onDateRangeChange(tempStartDate, tempEndDate);
+    if (onTimeRangeChange) {
+      onTimeRangeChange(
+        showTimeFilter ? tempStartTime : null,
+        showTimeFilter ? tempEndTime : null
+      );
+    }
     setShowDateMenu(false);
   };
 
   const handleCancel = () => {
     setTempStartDate(startDate);
     setTempEndDate(endDate);
+    setTempStartTime(startTime || null);
+    setTempEndTime(endTime || null);
+    setShowTimeFilter(!!(startTime || endTime));
     setIsSelectingStart(true);
     setShowDateMenu(false);
   };
@@ -327,26 +354,65 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
               ))}
             </div>
             
-                         {/* Quick Actions */}
-             <div className="flex gap-2">
-               <Button
-                 variant="secondary"
-                 size="sm"
-                 onClick={handleApplyFilter}
-                 disabled={!tempStartDate || !tempEndDate}
-                 className="flex-1 text-xs"
-               >
-                 {t('applyFilter')}
-               </Button>
-               <Button
-                 variant="ghost"
-                 size="sm"
-                 onClick={handleCancel}
-                 className="flex-1 text-xs"
-               >
-                 {t('cancel')}
-               </Button>
-             </div>
+            {/* Time Filter Toggle */}
+            <div className="mb-3">
+              <button
+                type="button"
+                onClick={() => setShowTimeFilter(!showTimeFilter)}
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-200 transition-colors w-full justify-center py-1"
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>{showTimeFilter ? t('hideTimeFilter') : t('filterByTime')}</span>
+              </button>
+              
+              {showTimeFilter && (
+                <div className="mt-2 p-3 bg-white/5 rounded-lg border border-white/10 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-400 block mb-1">{t('startTime')}</label>
+                      <input
+                        type="time"
+                        step="1"
+                        value={tempStartTime || ''}
+                        onChange={(e) => setTempStartTime(e.target.value ? `${e.target.value}${e.target.value.split(':').length < 3 ? ':00' : ''}` : null)}
+                        className="w-full bg-white/5 text-white border border-white/10 rounded px-2 py-1.5 text-sm font-mono"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs text-gray-400 block mb-1">{t('endTime')}</label>
+                      <input
+                        type="time"
+                        step="1"
+                        value={tempEndTime || ''}
+                        onChange={(e) => setTempEndTime(e.target.value ? `${e.target.value}${e.target.value.split(':').length < 3 ? ':00' : ''}` : null)}
+                        className="w-full bg-white/5 text-white border border-white/10 rounded px-2 py-1.5 text-sm font-mono"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Actions */}
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleApplyFilter}
+                disabled={!tempStartDate || !tempEndDate}
+                className="flex-1 text-xs"
+              >
+                {t('applyFilter')}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                className="flex-1 text-xs"
+              >
+                {t('cancel')}
+              </Button>
+            </div>
           </Card>
         </div>
       )}

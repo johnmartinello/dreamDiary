@@ -4,7 +4,7 @@ export const generateId = (): string => {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 };
 
-export const formatDate = (dateString: string): string => {
+export const formatDate = (dateString: string, locale: string = 'en-US'): string => {
   // Validate input
   if (!dateString || typeof dateString !== 'string') {
     return 'Invalid Date';
@@ -34,11 +34,17 @@ export const formatDate = (dateString: string): string => {
     return 'Invalid Date';
   }
   
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const normalizedLocale = locale.toLowerCase();
+  const yearFormatted = date.getFullYear();
+  const monthFormatted = String(date.getMonth() + 1).padStart(2, '0');
+  const dayFormatted = String(date.getDate()).padStart(2, '0');
+
+  if (normalizedLocale.startsWith('pt')) {
+    return `${dayFormatted}/${monthFormatted}/${yearFormatted}`;
+  }
+
+  // Default to month/day for English-like locales.
+  return `${monthFormatted}/${dayFormatted}/${yearFormatted}`;
 };
 
 export const formatDateForInput = (dateString: string): string => {
@@ -88,18 +94,61 @@ export const getCurrentDateString = (): string => {
   return `${year}-${month}-${day}`;
 };
 
-export const getTodayFormatted = (): string => {
-  // Get today's date in "Day [date]" format
+export const getCurrentTimeString = (): string => {
+  // Get current time in local timezone as HH:mm:ss
   const now = new Date();
-  return now.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  return `${hours}:${minutes}:${seconds}`;
 };
 
-export const compareDates = (dateA: string, dateB: string): number => {
-  // Safe date comparison that treats dates as local dates
+export const formatTime = (timeString?: string): string => {
+  if (!timeString || typeof timeString !== 'string') return '';
+  
+  const parts = timeString.split(':');
+  if (parts.length < 2) return '';
+  
+  const [hours, minutes, seconds] = parts.map(Number);
+  
+  if (isNaN(hours) || isNaN(minutes)) return '';
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return '';
+  
+  const h = String(hours).padStart(2, '0');
+  const m = String(minutes).padStart(2, '0');
+  const s = seconds !== undefined && !isNaN(seconds) ? `:${String(seconds).padStart(2, '0')}` : '';
+  
+  return `${h}:${m}${s}`;
+};
+
+export const formatDateTime = (dateString: string, timeString?: string, locale: string = 'en-US'): string => {
+  const formattedDate = formatDate(dateString, locale);
+  if (formattedDate === 'Invalid Date') return formattedDate;
+  
+  const formattedTime = formatTime(timeString);
+  if (!formattedTime) return formattedDate;
+  
+  return `${formattedDate} ${formattedTime}`;
+};
+
+export const getTodayFormatted = (locale: string = 'en-US'): string => {
+  // Get today's date in a locale-aware title format.
+  const now = new Date();
+  const normalizedLocale = locale.toLowerCase();
+  const dayFormatted = String(now.getDate()).padStart(2, '0');
+  const yearFormatted = now.getFullYear();
+  const monthLong = new Intl.DateTimeFormat(locale, { month: 'long' }).format(now);
+
+  if (normalizedLocale.startsWith('pt')) {
+    const monthCapitalized = monthLong.charAt(0).toUpperCase() + monthLong.slice(1);
+    return `${dayFormatted} de ${monthCapitalized}, ${yearFormatted}`;
+  }
+
+  return `${monthLong} ${dayFormatted}, ${yearFormatted}`;
+};
+
+export const compareDates = (dateA: string, dateB: string, timeA?: string, timeB?: string): number => {
+  // Safe date comparison that treats dates as local dates, with optional time
   try {
     const [yearA, monthA, dayA] = dateA.split('-').map(Number);
     const [yearB, monthB, dayB] = dateB.split('-').map(Number);
@@ -110,15 +159,30 @@ export const compareDates = (dateA: string, dateB: string): number => {
       return 0;
     }
     
-    const timeA = new Date(yearA, monthA - 1, dayA).getTime();
-    const timeB = new Date(yearB, monthB - 1, dayB).getTime();
+    const stampA = new Date(yearA, monthA - 1, dayA).getTime();
+    const stampB = new Date(yearB, monthB - 1, dayB).getTime();
     
     // Check if dates are valid
-    if (isNaN(timeA) || isNaN(timeB)) {
+    if (isNaN(stampA) || isNaN(stampB)) {
       return 0;
     }
     
-    return timeB - timeA; // Descending order (newest first)
+    // If dates are equal, compare by time
+    if (stampA === stampB && (timeA || timeB)) {
+      const parseTime = (t?: string): number => {
+        if (!t) return 0;
+        const parts = t.split(':').map(Number);
+        const h = parts[0] || 0;
+        const m = parts[1] || 0;
+        const s = parts[2] || 0;
+        return h * 3600 + m * 60 + s;
+      };
+      const secondsA = parseTime(timeA);
+      const secondsB = parseTime(timeB);
+      return secondsB - secondsA; // Descending order (newest first)
+    }
+    
+    return stampB - stampA; // Descending order (newest first)
   } catch (error) {
     console.error('Error comparing dates:', error);
     return 0;

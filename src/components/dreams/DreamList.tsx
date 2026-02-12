@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import { Calendar, Clock, Plus } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
-import { compareDates, getCurrentDateString, getTodayFormatted } from '../../utils';
-import { formatDate } from '../../utils';
+import { compareDates, getCurrentDateString, getCurrentTimeString, getTodayFormatted } from '../../utils';
+import { formatDate, formatTime } from '../../utils';
 import { TagPill } from './TagPill';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -12,27 +12,31 @@ import { useI18n } from '../../hooks/useI18n';
 import { DreamCalendarHeatmap } from './DreamCalendarHeatmap';
 
 export function DreamList() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { 
     getFilteredDreams, 
     setSelectedDream, 
     searchQuery, 
     selectedTag, 
     dateRange,
+    timeRange,
     getTagColor,
     addDream,
     setSearchQuery,
-    setDateRange
+    setDateRange,
+    setTimeRange
   } = useDreamStore();
   const dreams = getFilteredDreams();
 
   const handleNewDream = () => {
     addDream({
-      title: `${getTodayFormatted()}`,
+      title: `${getTodayFormatted(language)}`,
       date: getCurrentDateString(),
+      time: getCurrentTimeString(),
       description: '',
       tags: [],
       citedDreams: [],
+      citedTags: [],
     });
   };
 
@@ -109,6 +113,9 @@ export function DreamList() {
               onDateRangeChange={setDateRange}
               startDate={dateRange.startDate}
               endDate={dateRange.endDate}
+              onTimeRangeChange={setTimeRange}
+              startTime={timeRange.startTime}
+              endTime={timeRange.endTime}
             />
           </div>
         </div>
@@ -142,7 +149,7 @@ export function DreamList() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
             {[...dreams]
-              .sort((a, b) => compareDates(a.date, b.date))
+              .sort((a, b) => compareDates(a.date, b.date, a.time, b.time))
               .map((dream) => (
                 <motion.div 
                   key={dream.id} 
@@ -164,9 +171,17 @@ export function DreamList() {
                           <h3 className="text-lg font-semibold text-white group-hover:text-gray-200 transition-all duration-300 line-clamp-2 mb-2">
                             {dream.title}
                           </h3>
-                          <div className="flex items-center text-sm text-gray-300">
-                            <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                            {formatDate(dream.date)}
+                          <div className="flex items-center text-sm text-gray-300 gap-3">
+                            <span className="flex items-center">
+                              <Calendar className="w-4 h-4 mr-1 text-gray-400" />
+                              {formatDate(dream.date, language)}
+                            </span>
+                            {dream.time && (
+                              <span className="flex items-center">
+                                <Clock className="w-3.5 h-3.5 mr-1 text-gray-400" />
+                                {formatTime(dream.time)}
+                              </span>
+                            )}
                           </div>
                         </div>
         

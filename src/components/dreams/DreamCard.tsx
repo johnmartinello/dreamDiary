@@ -1,15 +1,17 @@
-import { Calendar, Tag } from 'lucide-react';
+import { Calendar, Clock, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { useDreamStore } from '../../store/dreamStore';
 import type { Dream } from '../../types';
-import { formatDate } from '../../utils';
+import { formatDate, formatTime } from '../../utils';
 import { TagPill } from './TagPill';
+import { useI18n } from '../../hooks/useI18n';
 
 interface DreamCardProps {
   dream: Dream;
 }
 
 export function DreamCard({ dream }: DreamCardProps) {
+  const { language } = useI18n();
   const { setSelectedDream, getTagColor } = useDreamStore();
 
   const handleClick = () => {
@@ -25,9 +27,17 @@ export function DreamCard({ dream }: DreamCardProps) {
         <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
           {dream.title}
         </h3>
-        <div className="flex items-center text-sm text-gray-500 mt-2">
-          <Calendar className="w-4 h-4 mr-1" />
-          {formatDate(dream.date)}
+        <div className="flex items-center text-sm text-gray-500 mt-2 gap-3">
+          <span className="flex items-center">
+            <Calendar className="w-4 h-4 mr-1" />
+            {formatDate(dream.date, language)}
+          </span>
+          {dream.time && (
+            <span className="flex items-center">
+              <Clock className="w-3.5 h-3.5 mr-1" />
+              {formatTime(dream.time)}
+            </span>
+          )}
         </div>
       </CardHeader>
       

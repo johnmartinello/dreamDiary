@@ -4,7 +4,7 @@ import type { CategoryColor, UserCategory } from '../types/taxonomy';
 import { getCategoryColor, UNCATEGORIZED_CATEGORY_ID } from '../types/taxonomy';
 import { storage } from '../utils/storage';
 import { AIService } from '../utils/aiService';
-import { generateId } from '../utils';
+import { generateId, getCurrentTimeString } from '../utils';
 
 // Resolve a category color from a tag id or a category id
 const resolveTagColor = (tagIdOrCategory: string, categories: UserCategory[]): CategoryColor => {
@@ -25,6 +25,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   selectedTag: null,
   searchQuery: '',
   dateRange: { startDate: null, endDate: null },
+  timeRange: { startTime: null, endTime: null },
   aiConfig: storage.getAIConfig('gemini'),
   graphFilters: {
     dateRange: { startDate: null, endDate: null },
@@ -39,6 +40,8 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       ...dreamData,
       tags: Array.isArray((dreamData as any).tags) ? (dreamData as any).tags : [],
       citedDreams: dreamData.citedDreams || [], // Initialize empty citations
+      citedTags: dreamData.citedTags || [], // Initialize empty tag citations
+      time: dreamData.time || getCurrentTimeString(), // Set current time if not provided
       id: generateId(),
       createdAt: now,
       updatedAt: now,
@@ -167,6 +170,13 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   setDateRange: (startDate: string | null, endDate: string | null) => {
     set({
       dateRange: { startDate, endDate },
+      currentView: 'home',
+    });
+  },
+
+  setTimeRange: (startTime: string | null, endTime: string | null) => {
+    set({
+      timeRange: { startTime, endTime },
       currentView: 'home',
     });
   },
@@ -308,7 +318,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   },
 
   getFilteredDreams: () => {
-    const { dreams, selectedTag, searchQuery, dateRange } = get();
+    const { dreams, selectedTag, searchQuery, dateRange, timeRange } = get();
     let filteredDreams = dreams;
 
     // Filter by tag if selected
@@ -342,6 +352,23 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
           return dreamDate >= dateRange.startDate;
         } else if (dateRange.endDate) {
           return dreamDate <= dateRange.endDate;
+        }
+        
+        return true;
+      });
+    }
+
+    // Filter by time range if provided
+    if (timeRange.startTime || timeRange.endTime) {
+      filteredDreams = filteredDreams.filter((dream) => {
+        const dreamTime = dream.time || '00:00:00';
+        
+        if (timeRange.startTime && timeRange.endTime) {
+          return dreamTime >= timeRange.startTime && dreamTime <= timeRange.endTime;
+        } else if (timeRange.startTime) {
+          return dreamTime >= timeRange.startTime;
+        } else if (timeRange.endTime) {
+          return dreamTime <= timeRange.endTime;
         }
         
         return true;
@@ -548,9 +575,13 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
             id: newId,
             // Update citedDreams to use new IDs if they were also imported
             citedDreams: dream.citedDreams.map(citedId => idMapping.get(citedId) || citedId),
+            citedTags: dream.citedTags || [],
           };
         }
-        return dream;
+        return {
+          ...dream,
+          citedTags: dream.citedTags || [],
+        };
       });
       
       // Process imported trashed dreams - generate new IDs for duplicates
@@ -564,9 +595,13 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
             id: newId,
             // Update citedDreams to use new IDs if they were also imported
             citedDreams: dream.citedDreams.map(citedId => idMapping.get(citedId) || citedId),
+            citedTags: dream.citedTags || [],
           };
         }
-        return dream;
+        return {
+          ...dream,
+          citedTags: dream.citedTags || [],
+        };
       });
       
       // Update citedDreams in processed dreams to reference new IDs
@@ -579,6 +614,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
         return {
           ...dream,
           citedDreams: updatedCitedDreams,
+          citedTags: dream.citedTags || [],
         };
       });
       
@@ -589,6 +625,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
         return {
           ...dream,
           citedDreams: updatedCitedDreams,
+          citedTags: dream.citedTags || [],
         };
       });
       
