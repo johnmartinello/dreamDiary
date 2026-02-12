@@ -4,11 +4,18 @@ import { usePasswordStore } from '../store/passwordStore';
 export function useActivityTracker() {
   const { updateActivity, checkAutoLock, config } = usePasswordStore();
   const autoLockIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastActivityUpdateRef = useRef(0);
 
   useEffect(() => {
     if (!config.isEnabled) return;
 
     const handleActivity = () => {
+      const now = Date.now();
+      // Avoid writing to storage on every high-frequency pointer event.
+      if (now - lastActivityUpdateRef.current < 1500) {
+        return;
+      }
+      lastActivityUpdateRef.current = now;
       updateActivity();
     };
 
@@ -26,8 +33,8 @@ export function useActivityTracker() {
       }
     };
 
-    // Track various user activities
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+    // Track meaningful user interactions while avoiding high-frequency noise.
+    const events = ['mousedown', 'keydown', 'touchstart', 'click'];
     
     events.forEach(event => {
       document.addEventListener(event, handleActivity, { passive: true });
@@ -37,6 +44,7 @@ export function useActivityTracker() {
     startAutoLockCheck();
 
     // Initial activity update
+    lastActivityUpdateRef.current = Date.now();
     updateActivity();
 
     return () => {

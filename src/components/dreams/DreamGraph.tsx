@@ -31,20 +31,18 @@ interface GraphEdge {
   strength: number;
 }
 
+const GRAPH_CAMERA_ANIMATION_MS = 350;
+
 export function DreamGraph() {
-  console.log('DreamGraph component rendered');
-  
   const { t } = useI18n();
-  const {
-    setCurrentView,
-    setSelectedDream,
-    getGraphData,
-    updateGraphFilters,
-    graphFilters,
-    getTagColor,
-    getAllTagsWithColors,
-    categories,
-  } = useDreamStore();
+  const setCurrentView = useDreamStore((state) => state.setCurrentView);
+  const setSelectedDream = useDreamStore((state) => state.setSelectedDream);
+  const getGraphData = useDreamStore((state) => state.getGraphData);
+  const updateGraphFilters = useDreamStore((state) => state.updateGraphFilters);
+  const graphFilters = useDreamStore((state) => state.graphFilters);
+  const getTagColor = useDreamStore((state) => state.getTagColor);
+  const getAllTagsWithColors = useDreamStore((state) => state.getAllTagsWithColors);
+  const categories = useDreamStore((state) => state.categories);
 
   const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; links: GraphEdge[] }>({ nodes: [], links: [] });
   const [showFilters, setShowFilters] = useState(false);
@@ -97,9 +95,7 @@ export function DreamGraph() {
 
   // Update graph data when filters change
   useEffect(() => {
-    console.log('Getting graph data...');
     const data = getGraphData();
-    console.log('Graph data received:', data);
     setGraphData({
       nodes: data.nodes as unknown as GraphNode[],
       links: data.edges as unknown as GraphEdge[]
@@ -183,11 +179,11 @@ export function DreamGraph() {
   // Centralize graph view
   const handleCentralizeGraph = () => {
     if (graphRef.current && renderedGraphData.nodes.length > 0) {
-      graphRef.current.centerAt(0, 0, 1000);
+      graphRef.current.centerAt(0, 0, GRAPH_CAMERA_ANIMATION_MS);
       const nodeCount = renderedGraphData.nodes.length;
       const baseZoom = Math.min(graphDimensions.width, graphDimensions.height) / 400;
       const zoomFactor = Math.max(0.8, Math.min(2.0, baseZoom * (1 + nodeCount * 0.1)));
-      graphRef.current.zoom(zoomFactor, 1000);
+      graphRef.current.zoom(zoomFactor, GRAPH_CAMERA_ANIMATION_MS);
     }
   };
 
@@ -196,8 +192,8 @@ export function DreamGraph() {
     const node = renderedGraphData.nodes.find(n => n.id === dreamId);
     if (node && graphRef.current) {
       // Center on the specific node
-      graphRef.current.centerAt(node.fx || 0, node.fy || 0, 1000);
-      graphRef.current.zoom(2.5, 1000); // Zoom in to focus on the node
+      graphRef.current.centerAt(node.fx || 0, node.fy || 0, GRAPH_CAMERA_ANIMATION_MS);
+      graphRef.current.zoom(2.5, GRAPH_CAMERA_ANIMATION_MS); // Zoom in to focus on the node
     }
   };
 
@@ -261,30 +257,18 @@ export function DreamGraph() {
 
   // Center the graph view when data changes or dimensions change
   useEffect(() => {
-    if (graphRef.current && renderedGraphData.nodes.length > 0) {
-      // Use setTimeout to ensure the graph has rendered
-      setTimeout(() => {
-        graphRef.current.centerAt(0, 0, 1000);
-        // Adjust zoom based on graph size and number of nodes
-        const nodeCount = renderedGraphData.nodes.length;
-        const baseZoom = Math.min(graphDimensions.width, graphDimensions.height) / 400;
-        const zoomFactor = Math.max(0.8, Math.min(2.0, baseZoom * (1 + nodeCount * 0.1)));
-        graphRef.current.zoom(zoomFactor, 1000);
-      }, 100);
-    }
+    if (!graphRef.current || renderedGraphData.nodes.length === 0) return;
+    const frameId = requestAnimationFrame(() => {
+      if (!graphRef.current) return;
+      graphRef.current.centerAt(0, 0, GRAPH_CAMERA_ANIMATION_MS);
+      // Adjust zoom based on graph size and number of nodes
+      const nodeCount = renderedGraphData.nodes.length;
+      const baseZoom = Math.min(graphDimensions.width, graphDimensions.height) / 400;
+      const zoomFactor = Math.max(0.8, Math.min(2.0, baseZoom * (1 + nodeCount * 0.1)));
+      graphRef.current.zoom(zoomFactor, GRAPH_CAMERA_ANIMATION_MS);
+    });
+    return () => cancelAnimationFrame(frameId);
   }, [renderedGraphData.nodes.length, graphDimensions]);
-
-  // Force recalculation when filters panel height changes
-  useEffect(() => {
-    if (showFilters) {
-      // Small delay to ensure the filters panel has rendered
-      const timer = setTimeout(() => {
-        // Trigger a re-render by updating a state that affects graphDimensions
-        setGraphData(prev => ({ ...prev }));
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [showFilters]);
 
   return (
     <div className="h-full flex flex-col relative">
@@ -445,7 +429,7 @@ export function DreamGraph() {
             <div className="flex items-center justify-center">
               <Card variant="glass" className="text-center p-12 relative overflow-hidden group">
                 {/* Shimmer effect on hover */}
-                <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 
                 <div className="relative z-10">
                   
@@ -461,7 +445,7 @@ export function DreamGraph() {
                     className="h-12 text-base rounded-xl relative overflow-hidden group cursor-pointer glass text-white/90 font-medium shadow-inner-lg border border-white/20 hover:glass hover:text-white/90 hover:font-medium hover:shadow-inner-lg hover:border-white/20"
                   >
                     {/* Shimmer effect on hover */}
-                    <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     <span className="relative z-10 flex items-center">
                       <ArrowLeft className="w-4 h-4 mr-2" />
                       {t('backToDreams')}

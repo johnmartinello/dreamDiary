@@ -10,7 +10,8 @@ interface PasswordSettingsProps {
 
 export function PasswordSettings({ onClose }: PasswordSettingsProps) {
   const { t } = useI18n();
-  const { config, updateConfig } = usePasswordStore();
+  const config = usePasswordStore((state) => state.config);
+  const updateConfig = usePasswordStore((state) => state.updateConfig);
   const [timeout, setTimeout] = useState(config.autoLockTimeout.toString());
 
   const handleSave = () => {

@@ -4,6 +4,7 @@ const fs = require('fs');
 
 // Better development detection
 const isDev = !app.isPackaged;
+const shouldOpenDevTools = process.env.OPEN_DEVTOOLS === '1';
 
 let mainWindow;
 
@@ -38,8 +39,9 @@ function createWindow() {
       console.log('Falling back to built files');
       mainWindow.loadFile(path.join(__dirname, '../dist/index.html'));
     });
-    // Open DevTools in development
-    mainWindow.webContents.openDevTools();
+    if (shouldOpenDevTools) {
+      mainWindow.webContents.openDevTools();
+    }
   } else {
     // In production, load the built files
     console.log('Loading from built files');

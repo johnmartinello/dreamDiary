@@ -101,7 +101,7 @@ export function Sidebar() {
               }}
             >
               {/* Shimmer effect on hover */}
-              <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <span className="relative z-10">{t('home')}</span>
             </Button>
 
@@ -115,13 +115,11 @@ export function Sidebar() {
               )}
               onClick={() => {
                 setSelectedTag(null);
-                setTimeout(() => {
-                  setCurrentView('graph');
-                }, 0);
+                setCurrentView('graph');
               }}
             >
               {/* Shimmer effect on hover */}
-              <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <span className="relative z-10">{t('connections')}</span>
             </Button>
 
@@ -135,13 +133,11 @@ export function Sidebar() {
               )}
               onClick={() => {
                 setSelectedTag(null);
-                setTimeout(() => {
-                  setCurrentView('insights');
-                }, 0);
+                setCurrentView('insights');
               }}
             >
               {/* Shimmer effect on hover */}
-              <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <span className="relative z-10 flex items-center gap-2">
                 {t('tagInsights')}
               </span>

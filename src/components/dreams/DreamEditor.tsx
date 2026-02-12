@@ -26,22 +26,19 @@ import type { CategoryColor, DreamTag } from '../../types/taxonomy';
 
 export function DreamEditor() {
   const { t, tArray } = useI18n();
-  const {
-    dreams,
-    selectedDreamId,
-    currentView,
-    setCurrentView,
-    updateDream,
-    deleteDream,
-    getTagColor,
-    getAllTags,
-    categories,
-    updateCategory,
-    addCitation,
-    removeCitation,
-
-    getDreamsThatCite,
-  } = useDreamStore();
+  const dreams = useDreamStore((state) => state.dreams);
+  const selectedDreamId = useDreamStore((state) => state.selectedDreamId);
+  const currentView = useDreamStore((state) => state.currentView);
+  const setCurrentView = useDreamStore((state) => state.setCurrentView);
+  const updateDream = useDreamStore((state) => state.updateDream);
+  const deleteDream = useDreamStore((state) => state.deleteDream);
+  const getTagColor = useDreamStore((state) => state.getTagColor);
+  const getAllTags = useDreamStore((state) => state.getAllTags);
+  const categories = useDreamStore((state) => state.categories);
+  const updateCategory = useDreamStore((state) => state.updateCategory);
+  const addCitation = useDreamStore((state) => state.addCitation);
+  const removeCitation = useDreamStore((state) => state.removeCitation);
+  const getDreamsThatCite = useDreamStore((state) => state.getDreamsThatCite);
 
   const dream = dreams.find((d) => d.id === selectedDreamId);
 
@@ -93,14 +90,17 @@ export function DreamEditor() {
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
   const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 320 });
+  const mentionPositionFrameRef = useRef<number | null>(null);
 
   // Modal refs (no longer using useClickOutside)
   const deleteModalRef = useRef<HTMLDivElement>(null);
   const dateModalRef = useRef<HTMLDivElement>(null);
 
+  const SAVING_INDICATOR_MS = 220;
+
   // Debounced values for auto-save
   const debouncedTitle = useDebounce(title, 500);
-  const debouncedDescription = useDebounce(description, 1000);
+  const debouncedDescription = useDebounce(description, 600);
   const debouncedDate = useDebounce(date, 500);
 
   // Initialize form when dream changes
@@ -128,9 +128,9 @@ export function DreamEditor() {
         setSelectedDay(today.getDate());
       }
       
-      // Reset initialization flag and set it after a small delay to ensure debounced values are ready
+      // Reset initialization flag and wait one frame for local state to settle.
       setIsInitialized(false);
-      setTimeout(() => setIsInitialized(true), 100);
+      requestAnimationFrame(() => setIsInitialized(true));
     } else {
       setIsInitialized(false);
     }
@@ -211,7 +211,7 @@ export function DreamEditor() {
 
   useEffect(() => {
     if (!mentionOpen) return;
-    const handleReposition = () => updateMentionDropdownPosition();
+    const handleReposition = () => scheduleMentionDropdownPositionUpdate();
     window.addEventListener('resize', handleReposition);
     window.addEventListener('scroll', handleReposition, true);
     return () => {
@@ -219,6 +219,15 @@ export function DreamEditor() {
       window.removeEventListener('scroll', handleReposition, true);
     };
   }, [mentionOpen]);
+
+  useEffect(
+    () => () => {
+      if (mentionPositionFrameRef.current !== null) {
+        cancelAnimationFrame(mentionPositionFrameRef.current);
+      }
+    },
+    []
+  );
 
   // Auto-save effect - only runs after initialization and when values actually change
   useEffect(() => {
@@ -284,7 +293,7 @@ export function DreamEditor() {
           citedDreams: finalCitations,
           citedTags: finalTagCitations,
         });
-        setTimeout(() => setIsSaving(false), 1000);
+        setTimeout(() => setIsSaving(false), SAVING_INDICATOR_MS);
       }
     }
   }, [debouncedTitle, debouncedDate, debouncedDescription, tags, citedDreams, citedTags, dream, selectedDreamId, updateDream, isInitialized, description, allKnownTags, dreams]);
@@ -420,7 +429,7 @@ export function DreamEditor() {
           citedDreams,
           citedTags,
         });
-        setTimeout(() => setIsSaving(false), 1000);
+        setTimeout(() => setIsSaving(false), SAVING_INDICATOR_MS);
       }
     }
     setCurrentView('home');
@@ -447,7 +456,7 @@ export function DreamEditor() {
     setCitedTags(citedTags.filter((id) => id !== tagId));
   };
 
-  const getFilteredCitationItems = () => {
+  const filteredCitationItems = useMemo(() => {
     const query = citationSearchQuery.trim().toLowerCase();
     const dreamItems = dreams
       .filter((d) => d.id !== selectedDreamId)
@@ -476,10 +485,9 @@ export function DreamEditor() {
       }));
 
     return [...dreamItems, ...tagItems].slice(0, 30);
-  };
+  }, [allKnownTags, citationSearchQuery, citedDreams, citedTags, dreams, selectedDreamId, categories, t]);
 
-  // Inline mention helpers
-  const getFilteredMentionItems = () => {
+  const filteredMentionItems = useMemo(() => {
     const query = mentionQuery.trim().toLowerCase();
     const dreamMentions = dreams
       .filter((d) => d.id !== selectedDreamId)
@@ -496,7 +504,7 @@ export function DreamEditor() {
         secondary: getCategoryDisplayName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID),
       }));
     return [...dreamMentions, ...tagMentions].slice(0, 20);
-  };
+  }, [allKnownTags, mentionQuery, dreams, selectedDreamId, categories, t]);
 
   const updateMentionDropdownPosition = () => {
     const ta = textareaRef.current;
@@ -546,6 +554,14 @@ export function DreamEditor() {
 
     setMentionPosition({ top, left, width: dropdownWidth });
     document.body.removeChild(div);
+  };
+
+  const scheduleMentionDropdownPositionUpdate = () => {
+    if (mentionPositionFrameRef.current !== null) return;
+    mentionPositionFrameRef.current = requestAnimationFrame(() => {
+      mentionPositionFrameRef.current = null;
+      updateMentionDropdownPosition();
+    });
   };
 
   const insertMention = (item: { kind: 'dream' | 'tag'; id: string; label: string }) => {
@@ -869,7 +885,7 @@ export function DreamEditor() {
                       setMentionStart(null);
                     } else {
                       setMentionQuery(slice.replace(/^@/, ''));
-                      requestAnimationFrame(() => updateMentionDropdownPosition());
+                      scheduleMentionDropdownPositionUpdate();
                     }
                   }
                 }}
@@ -882,7 +898,7 @@ export function DreamEditor() {
                       setMentionStart(ta.selectionStart);
                       setMentionQuery('');
                       setMentionSelectedIndex(0);
-                      requestAnimationFrame(() => updateMentionDropdownPosition());
+                      scheduleMentionDropdownPositionUpdate();
                     }
                     return; // allow input of '@'
                   }
@@ -890,7 +906,7 @@ export function DreamEditor() {
                   if (mentionOpen) {
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
-                      setMentionSelectedIndex((idx) => Math.min(idx + 1, getFilteredMentionItems().length - 1));
+                      setMentionSelectedIndex((idx) => Math.min(idx + 1, filteredMentionItems.length - 1));
                       return;
                     }
                     if (e.key === 'ArrowUp') {
@@ -899,7 +915,7 @@ export function DreamEditor() {
                       return;
                     }
                     if (e.key === 'Enter') {
-                      const list = getFilteredMentionItems();
+                      const list = filteredMentionItems;
                       if (list.length > 0) {
                         e.preventDefault();
                         insertMention(list[Math.max(0, Math.min(mentionSelectedIndex, list.length - 1))]);
@@ -914,13 +930,13 @@ export function DreamEditor() {
                   }
                 }}
                 onClick={() => {
-                  if (mentionOpen) updateMentionDropdownPosition();
+                  if (mentionOpen) scheduleMentionDropdownPositionUpdate();
                 }}
                 onKeyUp={() => {
-                  if (mentionOpen) updateMentionDropdownPosition();
+                  if (mentionOpen) scheduleMentionDropdownPositionUpdate();
                 }}
                 onScroll={() => {
-                  if (mentionOpen) updateMentionDropdownPosition();
+                  if (mentionOpen) scheduleMentionDropdownPositionUpdate();
                 }}
                 placeholder={t('describeYourDream')}
                 variant="transparent"
@@ -934,10 +950,10 @@ export function DreamEditor() {
                   className="fixed z-[10000] max-h-56 overflow-y-auto overflow-x-hidden bg-black/90 backdrop-blur rounded-lg border border-white/10 shadow-2xl"
                   style={{ top: mentionPosition.top, left: mentionPosition.left, width: mentionPosition.width }}
                 >
-                  {getFilteredMentionItems().length === 0 ? (
+                  {filteredMentionItems.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-gray-400">{t('noResults')}</div>
                   ) : (
-                    getFilteredMentionItems().map((item, idx) => (
+                    filteredMentionItems.map((item, idx) => (
                       <div
                         key={`${item.kind}-${item.id}`}
                         className={cn(
@@ -1001,12 +1017,12 @@ export function DreamEditor() {
                   />
                   
                   <div className="max-h-48 overflow-y-auto space-y-2">
-                    {getFilteredCitationItems().length === 0 ? (
+                    {filteredCitationItems.length === 0 ? (
                       <div className="text-center py-4 text-gray-400">
                         {citationSearchQuery ? t('noResults') : t('noCitationsAvailable')}
                       </div>
                     ) : (
-                      getFilteredCitationItems().map((item) => (
+                      filteredCitationItems.map((item) => (
                         <div
                           key={`${item.kind}-${item.id}`}
                           className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10 hover:bg-white/10 transition-colors"

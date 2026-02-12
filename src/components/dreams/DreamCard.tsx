@@ -12,7 +12,8 @@ interface DreamCardProps {
 
 export function DreamCard({ dream }: DreamCardProps) {
   const { language } = useI18n();
-  const { setSelectedDream, getTagColor } = useDreamStore();
+  const setSelectedDream = useDreamStore((state) => state.setSelectedDream);
+  const getTagColor = useDreamStore((state) => state.getTagColor);
 
   const handleClick = () => {
     setSelectedDream(dream.id);

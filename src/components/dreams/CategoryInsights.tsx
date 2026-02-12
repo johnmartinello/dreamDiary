@@ -11,7 +11,8 @@ type InsightView = 'overview' | 'analysis';
 
 export function CategoryInsights() {
   const { t } = useI18n();
-  const { setCurrentView, dreams } = useDreamStore();
+  const setCurrentView = useDreamStore((state) => state.setCurrentView);
+  const dreams = useDreamStore((state) => state.dreams);
   const [currentInsightView, setCurrentInsightView] = useState<InsightView>('overview');
 
   const insightViews = [

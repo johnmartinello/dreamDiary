@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
@@ -14,6 +14,7 @@ type TooltipState = {
   text: string;
   color: string;
 };
+type HeatmapHoverCell = { count: number; date: Date; level: number; isInSelectedYear: boolean };
 
 const CELL_SIZE = 12;
 const CELL_GAP = 3;
@@ -90,6 +91,8 @@ export function DreamCalendarHeatmap() {
 
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+  const tooltipFrameRef = useRef<number | null>(null);
+  const pendingTooltipRef = useRef<{ x: number; y: number; cell: HeatmapHoverCell } | null>(null);
 
   const minYear = allDreamYears[0];
   const maxYear = allDreamYears[allDreamYears.length - 1];
@@ -188,10 +191,7 @@ export function DreamCalendarHeatmap() {
 
   const heatmapWidth = GRID_COLUMNS * CELL_SIZE + (GRID_COLUMNS - 1) * CELL_GAP;
 
-  const handleMouseEnter = (
-    event: React.MouseEvent<HTMLDivElement>,
-    cell: { count: number; date: Date; level: number; isInSelectedYear: boolean }
-  ) => {
+  const updateTooltip = useCallback((x: number, y: number, cell: HeatmapHoverCell) => {
     if (!cell.isInSelectedYear) {
       return;
     }
@@ -205,12 +205,12 @@ export function DreamCalendarHeatmap() {
     const estimatedTooltipWidth = Math.min(360, Math.max(170, text.length * 7 + 26));
     const maxRight = window.innerWidth - TOOLTIP_EDGE_PADDING;
     const maxBottom = window.innerHeight - TOOLTIP_EDGE_PADDING;
-    const placeLeft = event.clientX + TOOLTIP_HORIZONTAL_OFFSET + estimatedTooltipWidth > maxRight;
+    const placeLeft = x + TOOLTIP_HORIZONTAL_OFFSET + estimatedTooltipWidth > maxRight;
 
     const left = placeLeft
-      ? event.clientX - TOOLTIP_HORIZONTAL_OFFSET
-      : event.clientX + TOOLTIP_HORIZONTAL_OFFSET;
-    const unclampedTop = event.clientY - TOOLTIP_VERTICAL_OFFSET;
+      ? x - TOOLTIP_HORIZONTAL_OFFSET
+      : x + TOOLTIP_HORIZONTAL_OFFSET;
+    const unclampedTop = y - TOOLTIP_VERTICAL_OFFSET;
     const top = Math.max(34, Math.min(unclampedTop, maxBottom));
 
     setTooltip({
@@ -220,11 +220,46 @@ export function DreamCalendarHeatmap() {
       text,
       color: HEATMAP_COLORS[cell.level],
     });
+  }, [dateFormatter, t]);
+
+  const flushPendingTooltip = useCallback(() => {
+    tooltipFrameRef.current = null;
+    const payload = pendingTooltipRef.current;
+    if (!payload) return;
+    updateTooltip(payload.x, payload.y, payload.cell);
+  }, [updateTooltip]);
+
+  const handleMouseEnter = (
+    event: React.MouseEvent<HTMLDivElement>,
+    cell: HeatmapHoverCell
+  ) => {
+    updateTooltip(event.clientX, event.clientY, cell);
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>, cell: HeatmapHoverCell) => {
+    pendingTooltipRef.current = { x: event.clientX, y: event.clientY, cell };
+    if (tooltipFrameRef.current === null) {
+      tooltipFrameRef.current = requestAnimationFrame(flushPendingTooltip);
+    }
   };
 
   const handleMouseLeave = () => {
+    pendingTooltipRef.current = null;
+    if (tooltipFrameRef.current !== null) {
+      cancelAnimationFrame(tooltipFrameRef.current);
+      tooltipFrameRef.current = null;
+    }
     setTooltip(null);
   };
+
+  useEffect(
+    () => () => {
+      if (tooltipFrameRef.current !== null) {
+        cancelAnimationFrame(tooltipFrameRef.current);
+      }
+    },
+    []
+  );
 
   return (
     <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
@@ -321,7 +356,7 @@ export function DreamCalendarHeatmap() {
                           : '1px solid rgba(255,255,255,0.04)',
                       }}
                       onMouseEnter={(event) => handleMouseEnter(event, cell)}
-                      onMouseMove={(event) => handleMouseEnter(event, cell)}
+                      onMouseMove={(event) => handleMouseMove(event, cell)}
                       onMouseLeave={handleMouseLeave}
                     />
                   ))}

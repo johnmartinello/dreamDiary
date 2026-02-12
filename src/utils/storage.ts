@@ -24,9 +24,14 @@ const defaultPasswordConfig: PasswordConfig = {
 
 // Check if we're in an Electron environment
 const isElectron = () => {
-  return typeof window !== 'undefined' && 
-         (window as any).process && 
-         (window as any).process.type === 'renderer';
+  if (typeof window === 'undefined') return false;
+  const hasElectronApi = typeof (window as any).electronAPI !== 'undefined';
+  const hasRendererNodeAccess =
+    typeof (window as any).require === 'function' &&
+    (window as any).process &&
+    (window as any).process.type === 'renderer';
+  // File-based storage requires both Electron runtime and renderer Node access.
+  return hasElectronApi && hasRendererNodeAccess;
 };
 
 // Get Electron's app data path

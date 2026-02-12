@@ -16,7 +16,7 @@ export function LockButton({
   showText = false 
 }: LockButtonProps) {
   const { t } = useI18n();
-  const { lock } = usePasswordStore();
+  const lock = usePasswordStore((state) => state.lock);
 
   const handleLock = () => {
     lock();

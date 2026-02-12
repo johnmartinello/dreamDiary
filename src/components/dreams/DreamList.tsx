@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
+import { useMemo } from 'react';
 import { Calendar, Clock, Plus } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
 import { compareDates, getCurrentDateString, getCurrentTimeString, getTodayFormatted } from '../../utils';
@@ -13,20 +14,24 @@ import { DreamCalendarHeatmap } from './DreamCalendarHeatmap';
 
 export function DreamList() {
   const { t, language } = useI18n();
-  const { 
-    getFilteredDreams, 
-    setSelectedDream, 
-    searchQuery, 
-    selectedTag, 
-    dateRange,
-    timeRange,
-    getTagColor,
-    addDream,
-    setSearchQuery,
-    setDateRange,
-    setTimeRange
-  } = useDreamStore();
+  const prefersReducedMotion = useReducedMotion();
+  const getFilteredDreams = useDreamStore((state) => state.getFilteredDreams);
+  const setSelectedDream = useDreamStore((state) => state.setSelectedDream);
+  const searchQuery = useDreamStore((state) => state.searchQuery);
+  const selectedTag = useDreamStore((state) => state.selectedTag);
+  const dateRange = useDreamStore((state) => state.dateRange);
+  const timeRange = useDreamStore((state) => state.timeRange);
+  const getTagColor = useDreamStore((state) => state.getTagColor);
+  const addDream = useDreamStore((state) => state.addDream);
+  const setSearchQuery = useDreamStore((state) => state.setSearchQuery);
+  const setDateRange = useDreamStore((state) => state.setDateRange);
+  const setTimeRange = useDreamStore((state) => state.setTimeRange);
   const dreams = getFilteredDreams();
+  const sortedDreams = useMemo(
+    () => [...dreams].sort((a, b) => compareDates(a.date, b.date, a.time, b.time)),
+    [dreams]
+  );
+  const disableListAnimations = prefersReducedMotion || sortedDreams.length > 60;
 
   const handleNewDream = () => {
     addDream({
@@ -45,13 +50,13 @@ export function DreamList() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.08,
+        staggerChildren: 0.04,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    hidden: { opacity: 0, y: 12, scale: 0.98 },
     visible: { opacity: 1, y: 0, scale: 1 },
   };
 
@@ -143,26 +148,25 @@ export function DreamList() {
           </Card>
         ) : (
           <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
+            variants={disableListAnimations ? undefined : containerVariants}
+            initial={disableListAnimations ? false : 'hidden'}
+            animate={disableListAnimations ? false : 'visible'}
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            {[...dreams]
-              .sort((a, b) => compareDates(a.date, b.date, a.time, b.time))
-              .map((dream) => (
+            {sortedDreams.map((dream) => (
                 <motion.div 
                   key={dream.id} 
-                  variants={itemVariants}
+                  variants={disableListAnimations ? undefined : itemVariants}
                   onClick={() => handleDreamClick(dream.id)}
                   className="group cursor-pointer"
+                  style={{ contentVisibility: 'auto', containIntrinsicSize: '280px' }}
                 >
                   <Card 
                     variant="glass" 
                     className="p-4 hover:-translate-y-1 transition-all duration-300 ease-out relative overflow-hidden h-full min-h-[280px]"
                   >
                     {/* Shimmer effect on hover */}
-                    <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     
                     <div className="relative z-10 h-full flex flex-col">
                       {/* Title and Date */}

@@ -24,21 +24,17 @@ export function TrashModal({ isOpen, onClose }: TrashModalProps) {
   const [processingAction, setProcessingAction] = useState<'restore' | 'delete' | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  const handleRestore = async (id: string) => {
+  const handleRestore = (id: string) => {
     setProcessingDreamId(id);
     setProcessingAction('restore');
-    // Small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 100));
     restoreDream(id);
     setProcessingDreamId(null);
     setProcessingAction(null);
   };
 
-  const handlePermanentlyDelete = async (id: string) => {
+  const handlePermanentlyDelete = (id: string) => {
     setProcessingDreamId(id);
     setProcessingAction('delete');
-    // Small delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 100));
     permanentlyDeleteDream(id);
     setProcessingDreamId(null);
     setProcessingAction(null);

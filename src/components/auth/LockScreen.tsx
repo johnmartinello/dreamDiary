@@ -16,7 +16,9 @@ export function LockScreen({ isFirstLaunch = false }: LockScreenProps) {
   const [isLoading, setIsLoading] = useState(false);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   
-  const { setPassword, verifyPassword, unlock } = usePasswordStore();
+  const setPassword = usePasswordStore((state) => state.setPassword);
+  const verifyPassword = usePasswordStore((state) => state.verifyPassword);
+  const unlock = usePasswordStore((state) => state.unlock);
 
   useEffect(() => {
     // Focus password input on mount

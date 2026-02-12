@@ -7,7 +7,11 @@ import { useI18n } from '../../hooks/useI18n';
 
 export function DataManagement() {
   const { t } = useI18n();
-  const { dreams, trashedDreams, exportData, importData, resetAllData } = useDreamStore();
+  const dreams = useDreamStore((state) => state.dreams);
+  const trashedDreams = useDreamStore((state) => state.trashedDreams);
+  const exportData = useDreamStore((state) => state.exportData);
+  const importData = useDreamStore((state) => state.importData);
+  const resetAllData = useDreamStore((state) => state.resetAllData);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);

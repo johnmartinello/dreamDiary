@@ -43,7 +43,9 @@ interface CategoryTagSummary {
 
 export function CategoryAnalysis() {
   const { t } = useI18n();
-  const { dreams, categories, getTagColor } = useDreamStore();
+  const dreams = useDreamStore((state) => state.dreams);
+  const categories = useDreamStore((state) => state.categories);
+  const getTagColor = useDreamStore((state) => state.getTagColor);
   const [activeTab, setActiveTab] = useState<'overview' | 'tags' | 'relationships' | 'categories' | 'trends'>('overview');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [textFilter, setTextFilter] = useState('');
