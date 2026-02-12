@@ -186,7 +186,8 @@ export function Sidebar() {
                       >
                         <div className="flex items-center gap-2">
                           <button
-                            className="text-white/60 hover:text-white"
+                            type="button"
+                            className="inline-flex h-7 w-7 -m-1 items-center justify-center rounded-md text-white/60 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
                             onClick={(e) => { e.stopPropagation(); toggleCategory(categoryId); }}
                             aria-label={isOpen ? t('collapse') : t('expand')}
                             title={isOpen ? t('collapse') : t('expand')}

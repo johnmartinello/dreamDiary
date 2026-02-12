@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowLeft, Calendar, ChevronDown, Clock, Trash2, Edit3, AlertTriangle, Link, Search, Tag, X } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
@@ -80,7 +80,7 @@ export function DreamEditor() {
   const [citedDreams, setCitedDreams] = useState<string[]>([]);
   const [citedTags, setCitedTags] = useState<string[]>([]);
 
-  // Inline mention ("@") state
+  // Inline mention ("#" dreams, "@" tags) state
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const tagAutocompleteRef = useRef<HTMLDivElement>(null);
@@ -88,6 +88,7 @@ export function DreamEditor() {
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState<number | null>(null);
+  const [mentionTrigger, setMentionTrigger] = useState<'#' | '@' | null>(null);
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
   const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 320 });
   const mentionPositionFrameRef = useRef<number | null>(null);
@@ -143,13 +144,13 @@ export function DreamEditor() {
   }, [categories, newTagCategory]);
 
   const allKnownTags = useMemo(() => getAllTags(), [dreams, getAllTags]);
-  const matchingKnownTags = useMemo(
-    () =>
-      allKnownTags
-        .filter((tag) => tag.label.toLowerCase().includes(newTag.trim().toLowerCase()))
-        .slice(0, 8),
-    [allKnownTags, newTag]
-  );
+  const matchingKnownTags = useMemo(() => {
+    const query = newTag.trim().toLowerCase();
+    return allKnownTags
+      .filter((tag) => (tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID) === newTagCategory)
+      .filter((tag) => tag.label.toLowerCase().includes(query))
+      .slice(0, 8);
+  }, [allKnownTags, newTag, newTagCategory]);
 
   const canCreateTypedTag = newTag.trim().length > 0 && !matchingKnownTags.some(
     (tag) => tag.label.toLowerCase() === newTag.trim().toLowerCase()
@@ -169,6 +170,13 @@ export function DreamEditor() {
       width: rect.width,
     });
   };
+
+  const closeMentionDropdown = useCallback(() => {
+    setMentionOpen(false);
+    setMentionQuery('');
+    setMentionStart(null);
+    setMentionTrigger(null);
+  }, []);
 
   useEffect(() => {
     if (!showTagAutocomplete) return;
@@ -202,12 +210,12 @@ export function DreamEditor() {
       );
 
       if (!clickedInsideTag) setShowTagAutocomplete(false);
-      if (!clickedInsideMention) setMentionOpen(false);
+      if (!clickedInsideMention) closeMentionDropdown();
     };
 
     document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [showTagAutocomplete, mentionOpen]);
+  }, [showTagAutocomplete, mentionOpen, closeMentionDropdown]);
 
   useEffect(() => {
     if (!mentionOpen) return;
@@ -232,9 +240,9 @@ export function DreamEditor() {
   // Auto-save effect - only runs after initialization and when values actually change
   useEffect(() => {
     if (dream && selectedDreamId && isInitialized) {
-      // Detect citations created via inline "@Title" mentions and sync with citations
+      // Detect citations created via inline "#Title" mentions and sync with citations
       const mentionsFromDescription: string[] = dreams
-        .filter((d) => d.id !== selectedDreamId && description.includes(`@${d.title}`))
+        .filter((d) => d.id !== selectedDreamId && description.includes(`#${d.title}`))
         .map((d) => d.id);
 
       // Detect tag citations created via inline "@tag" mentions and sync with citations
@@ -245,7 +253,11 @@ export function DreamEditor() {
       // Remove citations that no longer exist in the description
       const updatedCitations = citedDreams.filter(citationId => {
         const citedDream = dreams.find(d => d.id === citationId);
-        return citedDream && description.includes(`@${citedDream.title}`);
+        // Keep backward compatibility with older "@dream" mentions.
+        return citedDream && (
+          description.includes(`#${citedDream.title}`) ||
+          description.includes(`@${citedDream.title}`)
+        );
       });
 
       const updatedTagCitations = citedTags.filter((citationTagId) => {
@@ -489,22 +501,50 @@ export function DreamEditor() {
 
   const filteredMentionItems = useMemo(() => {
     const query = mentionQuery.trim().toLowerCase();
-    const dreamMentions = dreams
-      .filter((d) => d.id !== selectedDreamId)
-      .filter((d) => !query || d.title.toLowerCase().includes(query))
-      .slice(0, 12)
-      .map((d) => ({ kind: 'dream' as const, id: d.id, label: d.title, secondary: d.date }));
-    const tagMentions = allKnownTags
-      .filter((tag) => !query || tag.label.toLowerCase().includes(query))
-      .slice(0, 8)
-      .map((tag) => ({
-        kind: 'tag' as const,
-        id: tag.id,
-        label: tag.label,
-        secondary: getCategoryDisplayName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID),
-      }));
-    return [...dreamMentions, ...tagMentions].slice(0, 20);
-  }, [allKnownTags, mentionQuery, dreams, selectedDreamId, categories, t]);
+    if (mentionTrigger === '#') {
+      return dreams
+        .filter((d) => d.id !== selectedDreamId)
+        .filter((d) => !query || d.title.toLowerCase().includes(query))
+        .slice(0, 20)
+        .map((d) => ({ kind: 'dream' as const, id: d.id, label: d.title, secondary: d.date }));
+    }
+    if (mentionTrigger === '@') {
+      return allKnownTags
+        .filter((tag) => !query || tag.label.toLowerCase().includes(query))
+        .slice(0, 20)
+        .map((tag) => ({
+          kind: 'tag' as const,
+          id: tag.id,
+          label: tag.label,
+          secondary: getCategoryDisplayName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID),
+        }));
+    }
+    return [];
+  }, [allKnownTags, mentionQuery, dreams, selectedDreamId, categories, t, mentionTrigger]);
+
+  const canCreateMentionTag = useMemo(() => {
+    if (mentionTrigger !== '@') return false;
+    const rawLabel = mentionQuery.trim();
+    if (!rawLabel) return false;
+    const normalized = rawLabel.toLowerCase();
+    return !allKnownTags.some((tag) => tag.label.toLowerCase() === normalized);
+  }, [allKnownTags, mentionQuery, mentionTrigger]);
+
+  const mentionDropdownItems = useMemo(() => {
+    if (!canCreateMentionTag) return filteredMentionItems;
+    const categoryId = categories.some((category) => category.id === newTagCategory)
+      ? newTagCategory
+      : UNCATEGORIZED_CATEGORY_ID;
+    return [
+      ...filteredMentionItems,
+      {
+        kind: 'tag-create' as const,
+        id: buildTagId(categoryId, mentionQuery.trim()),
+        label: mentionQuery.trim(),
+        secondary: getCategoryDisplayName(categoryId),
+      },
+    ];
+  }, [canCreateMentionTag, filteredMentionItems, categories, newTagCategory, mentionQuery]);
 
   const updateMentionDropdownPosition = () => {
     const ta = textareaRef.current;
@@ -564,13 +604,17 @@ export function DreamEditor() {
     });
   };
 
+  useEffect(() => {
+    setMentionSelectedIndex((prev) => Math.max(0, Math.min(prev, mentionDropdownItems.length - 1)));
+  }, [mentionDropdownItems.length]);
+
   const insertMention = (item: { kind: 'dream' | 'tag'; id: string; label: string }) => {
     const ta = textareaRef.current;
     if (!ta || mentionStart === null) return;
     const caret = ta.selectionStart || 0;
     const before = description.substring(0, mentionStart);
     const after = description.substring(caret);
-    const mentionText = `@${item.label}`;
+    const mentionText = item.kind === 'dream' ? `#${item.label}` : `@${item.label}`;
     const newValue = `${before}${mentionText}${after}`;
     setDescription(newValue);
     // Move caret to end of inserted text
@@ -586,9 +630,21 @@ export function DreamEditor() {
     if (item.kind === 'tag' && !citedTags.includes(item.id)) {
       setCitedTags([...citedTags, item.id]);
     }
-    setMentionOpen(false);
-    setMentionQuery('');
-    setMentionStart(null);
+    closeMentionDropdown();
+  };
+
+  const createAndInsertTagMention = (label: string) => {
+    const trimmedLabel = label.trim();
+    if (!trimmedLabel) return;
+    const categoryId = categories.some((category) => category.id === newTagCategory)
+      ? newTagCategory
+      : UNCATEGORIZED_CATEGORY_ID;
+    const id = buildTagId(categoryId, trimmedLabel);
+
+    if (!tags.some((tag) => tag.id === id)) {
+      setTags([...tags, { id, label: trimmedLabel, categoryId, isCustom: true }]);
+    }
+    insertMention({ kind: 'tag', id, label: trimmedLabel });
   };
 
   // Custom date picker helpers
@@ -785,12 +841,16 @@ export function DreamEditor() {
                         setShowTagAutocomplete(true);
                         requestAnimationFrame(() => updateTagAutocompletePosition());
                       }}
+                      onClick={() => {
+                        setShowTagAutocomplete(true);
+                        requestAnimationFrame(() => updateTagAutocompletePosition());
+                      }}
                       onKeyDown={handleTagInputKeyDown}
                       placeholder={t('searchOrCreateTag')}
                       variant="transparent"
                       className="w-full border-b border-white/20 focus:border-gray-400 px-0 py-1 text-sm"
                     />
-                    {showTagAutocomplete && newTag.trim() && createPortal(
+                    {showTagAutocomplete && createPortal(
                       <div
                         ref={tagAutocompleteRef}
                         className="fixed z-[10000] max-h-56 overflow-auto bg-black/90 border border-white/10 rounded-lg p-2 space-y-1 shadow-2xl"
@@ -869,62 +929,66 @@ export function DreamEditor() {
                 onChange={(e) => {
                   const value = e.target.value;
                   setDescription(value);
-                  if (mentionOpen && mentionStart !== null) {
+                  if (mentionOpen && mentionStart !== null && mentionTrigger) {
                     const caret = (e.target as HTMLTextAreaElement).selectionStart || 0;
-                    // Close if caret moved to/before trigger or '@' was deleted
-                    if (caret <= mentionStart || value[mentionStart] !== '@') {
-                      setMentionOpen(false);
-                      setMentionQuery('');
-                      setMentionStart(null);
+                    // Close if caret moved to/before trigger or trigger char was deleted.
+                    if (caret <= mentionStart || value[mentionStart] !== mentionTrigger) {
+                      closeMentionDropdown();
                       return;
                     }
                     const slice = value.slice(mentionStart, caret);
                     if (/\s/.test(slice) || slice.includes('\n')) {
-                      setMentionOpen(false);
-                      setMentionQuery('');
-                      setMentionStart(null);
+                      closeMentionDropdown();
                     } else {
-                      setMentionQuery(slice.replace(/^@/, ''));
+                      setMentionQuery(slice.slice(1));
                       scheduleMentionDropdownPositionUpdate();
                     }
                   }
                 }}
                 onKeyDown={(e) => {
-                  // Open mention dropdown when typing '@'
-                  if (e.key === '@') {
+                  // Open mention dropdown when typing a citation trigger.
+                  if (e.key === '@' || e.key === '#') {
                     setMentionOpen(true);
                     const ta = textareaRef.current;
                     if (ta) {
                       setMentionStart(ta.selectionStart);
+                      setMentionTrigger(e.key === '#' ? '#' : '@');
                       setMentionQuery('');
                       setMentionSelectedIndex(0);
                       scheduleMentionDropdownPositionUpdate();
                     }
-                    return; // allow input of '@'
+                    return; // allow input of the trigger character
                   }
 
                   if (mentionOpen) {
                     if (e.key === 'ArrowDown') {
+                      if (mentionDropdownItems.length === 0) return;
                       e.preventDefault();
-                      setMentionSelectedIndex((idx) => Math.min(idx + 1, filteredMentionItems.length - 1));
+                      setMentionSelectedIndex((idx) => Math.min(idx + 1, mentionDropdownItems.length - 1));
                       return;
                     }
                     if (e.key === 'ArrowUp') {
+                      if (mentionDropdownItems.length === 0) return;
                       e.preventDefault();
                       setMentionSelectedIndex((idx) => Math.max(idx - 1, 0));
                       return;
                     }
                     if (e.key === 'Enter') {
-                      const list = filteredMentionItems;
+                      const list = mentionDropdownItems;
                       if (list.length > 0) {
                         e.preventDefault();
-                        insertMention(list[Math.max(0, Math.min(mentionSelectedIndex, list.length - 1))]);
+                        const selected = list[Math.max(0, Math.min(mentionSelectedIndex, list.length - 1))];
+                        if (selected.kind === 'tag-create') {
+                          createAndInsertTagMention(selected.label);
+                        } else {
+                          insertMention(selected);
+                        }
                       }
                       return;
                     }
                     if (e.key === 'Escape') {
                       e.preventDefault();
-                      setMentionOpen(false);
+                      closeMentionDropdown();
                       return;
                     }
                   }
@@ -950,10 +1014,10 @@ export function DreamEditor() {
                   className="fixed z-[10000] max-h-56 overflow-y-auto overflow-x-hidden bg-black/90 backdrop-blur rounded-lg border border-white/10 shadow-2xl"
                   style={{ top: mentionPosition.top, left: mentionPosition.left, width: mentionPosition.width }}
                 >
-                  {filteredMentionItems.length === 0 ? (
+                  {mentionDropdownItems.length === 0 ? (
                     <div className="px-3 py-2 text-sm text-gray-400">{t('noResults')}</div>
                   ) : (
-                    filteredMentionItems.map((item, idx) => (
+                    mentionDropdownItems.map((item, idx) => (
                       <div
                         key={`${item.kind}-${item.id}`}
                         className={cn(
@@ -963,6 +1027,10 @@ export function DreamEditor() {
                         onMouseDown={(e) => {
                           // prevent textarea blur before we insert
                           e.preventDefault();
+                          if (item.kind === 'tag-create') {
+                            createAndInsertTagMention(item.label);
+                            return;
+                          }
                           insertMention(item);
                         }}
                       >
@@ -971,12 +1039,12 @@ export function DreamEditor() {
                             {item.label.length > 25 ? `${item.label.slice(0, 25)}...` : item.label}
                           </span>
                           <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/20 text-gray-300">
-                            {item.kind === 'tag' ? t('tags') : t('dream')}
+                            {item.kind === 'tag' || item.kind === 'tag-create' ? t('tags') : t('dream')}
                           </span>
                         </div>
                         <span className="shrink-0 text-xs text-gray-400 max-w-[110px] flex items-center gap-1">
-                          {item.kind === 'tag' ? <Tag className="w-3 h-3" /> : <Link className="w-3 h-3" />}
-                          {item.secondary}
+                          {item.kind === 'tag' || item.kind === 'tag-create' ? <Tag className="w-3 h-3" /> : <Link className="w-3 h-3" />}
+                          {item.kind === 'tag-create' ? `${t('newTag')}: ${item.secondary}` : item.secondary}
                         </span>
                       </div>
                     ))
@@ -1038,6 +1106,11 @@ export function DreamEditor() {
                             {item.kind === 'dream' && item.preview && (
                               <div className="text-xs text-gray-500 mt-1">
                                 {item.preview}...
+                              </div>
+                            )}
+                            {item.kind === 'dream' && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                #{item.title}
                               </div>
                             )}
                             {item.kind === 'tag' && (

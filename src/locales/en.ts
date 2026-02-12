@@ -33,7 +33,7 @@ export const en = {
   dreamDate: 'Dream date',
   dreamNotFound: 'Dream not found',
   backToDreams: 'Back to Dreams',
-  describeYourDream: 'Describe your dream in detail... Let your thoughts flow naturally... use @ to cite dreams and tags',
+  describeYourDream: 'Use # to cite dreams and @ to cite/create tags',
   addCategory: 'Add Category...',
   category: 'Category',
   categoryEmotions: 'Emotions',
