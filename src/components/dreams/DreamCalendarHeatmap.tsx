@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
 import { useI18n } from '../../hooks/useI18n';
@@ -7,8 +8,9 @@ import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
 
 type TooltipState = {
-  x: number;
-  y: number;
+  left: number;
+  top: number;
+  placeLeft: boolean;
   text: string;
   color: string;
 };
@@ -17,6 +19,9 @@ const CELL_SIZE = 12;
 const CELL_GAP = 3;
 const GRID_COLUMNS = 53;
 const GRID_ROWS = 7;
+const TOOLTIP_HORIZONTAL_OFFSET = 10;
+const TOOLTIP_VERTICAL_OFFSET = 10;
+const TOOLTIP_EDGE_PADDING = 8;
 
 const HEATMAP_COLORS = [
   'rgba(255, 255, 255, 0.06)',
@@ -71,7 +76,6 @@ const getHeatLevel = (count: number): number => {
 export function DreamCalendarHeatmap() {
   const dreams = useDreamStore((state) => state.dreams);
   const { t, language } = useI18n();
-  const containerRef = useRef<HTMLDivElement | null>(null);
   const currentYear = new Date().getFullYear();
 
   const allDreamYears = useMemo(() => {
@@ -192,20 +196,27 @@ export function DreamCalendarHeatmap() {
       return;
     }
 
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    if (!containerRect) {
-      return;
-    }
-
     const formattedDate = dateFormatter.format(cell.date);
     const text =
       cell.count > 0
         ? t('dreamsOnDate', { count: cell.count, date: formattedDate })
         : t('noDreamsOnDate', { date: formattedDate });
 
+    const estimatedTooltipWidth = Math.min(360, Math.max(170, text.length * 7 + 26));
+    const maxRight = window.innerWidth - TOOLTIP_EDGE_PADDING;
+    const maxBottom = window.innerHeight - TOOLTIP_EDGE_PADDING;
+    const placeLeft = event.clientX + TOOLTIP_HORIZONTAL_OFFSET + estimatedTooltipWidth > maxRight;
+
+    const left = placeLeft
+      ? event.clientX - TOOLTIP_HORIZONTAL_OFFSET
+      : event.clientX + TOOLTIP_HORIZONTAL_OFFSET;
+    const unclampedTop = event.clientY - TOOLTIP_VERTICAL_OFFSET;
+    const top = Math.max(34, Math.min(unclampedTop, maxBottom));
+
     setTooltip({
-      x: event.clientX - containerRect.left + 10,
-      y: event.clientY - containerRect.top - 36,
+      left,
+      top,
+      placeLeft,
       text,
       color: HEATMAP_COLORS[cell.level],
     });
@@ -255,7 +266,7 @@ export function DreamCalendarHeatmap() {
 
         <div className="overflow-x-auto">
           <div className="w-full flex justify-center">
-            <div ref={containerRef} className="relative min-w-fit">
+            <div className="relative min-w-fit">
             <div className="flex gap-2">
               <div
                 className="text-[10px] text-white/45 mt-6"
@@ -318,21 +329,25 @@ export function DreamCalendarHeatmap() {
               </div>
             </div>
 
-              {tooltip && (
-                <div
-                  className="absolute pointer-events-none px-2.5 py-1.5 text-[11px] rounded-md border border-white/15 text-white/90 glass z-20 whitespace-nowrap"
-                  style={{
-                    left: tooltip.x,
-                    top: tooltip.y,
-                    boxShadow: `0 0 0 1px ${tooltip.color}33, 0 8px 24px rgba(0,0,0,0.35)`,
-                  }}
-                >
-                  {tooltip.text}
-                </div>
-              )}
             </div>
           </div>
         </div>
+
+        {tooltip &&
+          createPortal(
+            <div
+              className="fixed pointer-events-none px-2.5 py-1.5 text-[11px] rounded-md border border-white/15 text-white/90 glass z-[200] whitespace-nowrap"
+              style={{
+                left: tooltip.left,
+                top: tooltip.top,
+                transform: `${tooltip.placeLeft ? 'translateX(-100%) ' : ''}translateY(-100%)`,
+                boxShadow: `0 0 0 1px ${tooltip.color}33, 0 8px 24px rgba(0,0,0,0.35)`,
+              }}
+            >
+              {tooltip.text}
+            </div>,
+            document.body
+          )}
 
         <div className="flex justify-end items-center mt-3 text-[11px] text-white/50 gap-2">
           <span>{t('less')}</span>
