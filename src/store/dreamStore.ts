@@ -1,7 +1,13 @@
 import { create } from 'zustand';
 import type { Dream, DreamStore, TagWithColor, GraphData, GraphFilters } from '../types';
 import type { CategoryColor, UserCategory } from '../types/taxonomy';
-import { getCategoryColor, normalizeCategoryColor, UNCATEGORIZED_CATEGORY_ID } from '../types/taxonomy';
+import {
+  DEFAULT_CATEGORY_PRESETS,
+  getCategoryColor,
+  isFixedCategory,
+  normalizeCategoryColor,
+  UNCATEGORIZED_CATEGORY_ID,
+} from '../types/taxonomy';
 import { storage } from '../utils/storage';
 import { generateId, getCurrentTimeString } from '../utils';
 
@@ -15,9 +21,42 @@ const resolveTagColor = (tagIdOrCategory: string, categories: UserCategory[]): C
   return getCategoryColor(UNCATEGORIZED_CATEGORY_ID, categories);
 };
 
+const normalizeFixedCategories = (categories: UserCategory[]): UserCategory[] => {
+  const now = new Date().toISOString();
+  return DEFAULT_CATEGORY_PRESETS.map((preset) => {
+    const existing = categories.find((category) => category.id === preset.id);
+    return {
+      id: preset.id,
+      name: preset.name,
+      color: normalizeCategoryColor(existing?.color ?? preset.color),
+      createdAt: existing?.createdAt ?? now,
+      updatedAt: existing?.updatedAt ?? now,
+    };
+  });
+};
+
+const rawCategories = storage.getCategories();
+const initialCategories = normalizeFixedCategories(rawCategories);
+const shouldPersistInitialCategories =
+  rawCategories.length !== initialCategories.length ||
+  rawCategories.some((category) => !isFixedCategory(category.id)) ||
+  initialCategories.some((category, index) => {
+    const rawCategory = rawCategories[index];
+    return (
+      !rawCategory ||
+      rawCategory.id !== category.id ||
+      rawCategory.name !== category.name ||
+      normalizeCategoryColor(rawCategory.color) !== category.color
+    );
+  });
+
+if (shouldPersistInitialCategories) {
+  storage.saveCategories(initialCategories);
+}
+
 export const useDreamStore = create<DreamStore>((set, get) => ({
   dreams: storage.getDreams(),
-  categories: storage.getCategories(),
+  categories: initialCategories,
   trashedDreams: storage.getTrashedDreams(),
   selectedDreamId: null,
   currentView: 'home',
@@ -181,49 +220,13 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
 
   getCategories: () => get().categories,
 
-  addCategory: (categoryInput) => {
-    const now = new Date().toISOString();
-    const baseId = categoryInput.name
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-    const fallbackId = baseId || generateId();
-
-    const existing = new Set(get().categories.map((c) => c.id));
-    let uniqueId = fallbackId;
-    let suffix = 2;
-    while (existing.has(uniqueId)) {
-      uniqueId = `${fallbackId}-${suffix}`;
-      suffix += 1;
-    }
-
-    const category: UserCategory = {
-      id: uniqueId,
-      name: categoryInput.name.trim(),
-      color: normalizeCategoryColor(categoryInput.color),
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    set((state) => {
-      const categories = [...state.categories, category];
-      storage.saveCategories(categories);
-      return { categories };
-    });
-
-    return category;
-  },
-
   updateCategory: (id, updates) => {
+    if (!isFixedCategory(id)) return;
     set((state) => {
       const categories = state.categories.map((category) =>
         category.id === id
           ? {
               ...category,
-              ...updates,
-              name: (updates.name ?? category.name).trim(),
               color: normalizeCategoryColor(updates.color ?? category.color),
               updatedAt: new Date().toISOString(),
             }
@@ -231,25 +234,6 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       );
       storage.saveCategories(categories);
       return { categories };
-    });
-  },
-
-  deleteCategory: (id) => {
-    if (id === UNCATEGORIZED_CATEGORY_ID) return;
-    set((state) => {
-      const categories = state.categories.filter((category) => category.id !== id);
-      const dreams = state.dreams.map((dream) => ({
-        ...dream,
-        tags: dream.tags.filter((tag) => tag.categoryId !== id),
-      }));
-      const trashedDreams = state.trashedDreams.map((dream) => ({
-        ...dream,
-        tags: dream.tags.filter((tag) => tag.categoryId !== id),
-      }));
-      storage.saveCategories(categories);
-      storage.saveDreams(dreams);
-      storage.saveTrashedDreams(trashedDreams);
-      return { categories, dreams, trashedDreams };
     });
   },
 
@@ -568,10 +552,10 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       // Merge with existing data
       const mergedDreams = [...state.dreams, ...finalProcessedDreams];
       const mergedTrashedDreams = [...state.trashedDreams, ...finalProcessedTrashedDreams];
-      const mergedCategories = [
+      const mergedCategories = normalizeFixedCategories([
         ...state.categories,
-        ...importedCategories.filter(category => !existingCategoryIds.has(category.id)),
-      ];
+        ...importedCategories.filter((category) => !existingCategoryIds.has(category.id)),
+      ]);
       
       // Save to storage
       storage.saveDreams(mergedDreams);
@@ -584,5 +568,30 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
         categories: mergedCategories,
       };
     });
+  },
+
+  resetAllData: () => {
+    const resetCategories = normalizeFixedCategories([]);
+    storage.saveDreams([]);
+    storage.saveTrashedDreams([]);
+    storage.saveCategories(resetCategories);
+
+    set(() => ({
+      dreams: [],
+      trashedDreams: [],
+      categories: resetCategories,
+      selectedDreamId: null,
+      selectedTag: null,
+      searchQuery: '',
+      currentView: 'home',
+      dateRange: { startDate: null, endDate: null },
+      timeRange: { startTime: null, endTime: null },
+      graphFilters: {
+        dateRange: { startDate: null, endDate: null },
+        selectedTags: [],
+        showIsolated: true,
+        layout: 'force',
+      },
+    }));
   },
 }));

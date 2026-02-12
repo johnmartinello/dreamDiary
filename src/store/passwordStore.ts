@@ -36,6 +36,9 @@ export const usePasswordStore = create<PasswordStore>((set, get) => {
       isFirstLaunch: false,
       isLocked: false,
     });
+
+    // Ensure default categories are seeded as soon as the first login completes.
+    storage.getCategories();
   },
 
   verifyPassword: async (password: string) => {
@@ -97,6 +100,8 @@ export const usePasswordStore = create<PasswordStore>((set, get) => {
       },
     }));
     storage.savePasswordConfig(get().config);
+    // Ensure categories are present for the session immediately after login.
+    storage.getCategories();
   },
 
   updateActivity: () => {

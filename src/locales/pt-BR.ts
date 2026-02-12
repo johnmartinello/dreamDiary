@@ -36,6 +36,10 @@ export const ptBR = {
   describeYourDream: 'Descreva seu sonho em detalhes... Deixe seus pensamentos fluírem naturalmente... use @ para citar sonhos e tags',
   addCategory: 'Adicionar Categoria...',
   category: 'Categoria',
+  categoryEmotions: 'Emocoes',
+  categoryCharacters: 'Personagens',
+  categoryPlaces: 'Lugares',
+  categoryDreamTypes: 'Tipos de Sonho',
   uncategorized: 'Sem categoria',
   manageCategories: 'Gerenciar categorias',
   createCategory: 'Criar categoria',
@@ -80,6 +84,10 @@ export const ptBR = {
   invalidFile: 'Formato de arquivo inválido',
   dreamsCount: 'Sonhos',
   trashCount: 'Lixeira',
+  deleteAllData: 'Excluir Todos os Dados',
+  deleteAllDataDescription: 'Exclua permanentemente todos os sonhos e dados da lixeira deste dispositivo',
+  deleteAllDataConfirm: 'Isso excluirá permanentemente todos os seus sonhos e sonhos na lixeira. Esta ação não pode ser desfeita.',
+  deleteAllDataSuccess: 'Todos os dados foram excluídos com sucesso',
   
   // Lockscreen
   lockscreen: 'Tela de Bloqueio',

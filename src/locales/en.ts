@@ -36,6 +36,10 @@ export const en = {
   describeYourDream: 'Describe your dream in detail... Let your thoughts flow naturally... use @ to cite dreams and tags',
   addCategory: 'Add Category...',
   category: 'Category',
+  categoryEmotions: 'Emotions',
+  categoryCharacters: 'Characters',
+  categoryPlaces: 'Places',
+  categoryDreamTypes: 'Dream Types',
   uncategorized: 'Uncategorized',
   manageCategories: 'Manage Categories',
   createCategory: 'Create Category',
@@ -80,6 +84,10 @@ export const en = {
   invalidFile: 'Invalid file format',
   dreamsCount: 'Dreams',
   trashCount: 'Trash',
+  deleteAllData: 'Delete All Data',
+  deleteAllDataDescription: 'Permanently delete all dreams and trash data from this device',
+  deleteAllDataConfirm: 'This will permanently delete all your dreams and trashed dreams. This action cannot be undone.',
+  deleteAllDataSuccess: 'All data deleted successfully',
   
   // Lockscreen
   lockscreen: 'Lockscreen',

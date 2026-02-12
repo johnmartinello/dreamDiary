@@ -117,9 +117,7 @@ export interface DreamStore {
   getAllTagsWithColors: () => TagWithColor[];
   getTagColor: (tagIdOrCategory: string) => CategoryColor;
   getCategories: () => UserCategory[];
-  addCategory: (category: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>) => UserCategory;
-  updateCategory: (id: string, updates: Partial<Pick<UserCategory, 'name' | 'color'>>) => void;
-  deleteCategory: (id: string) => void;
+  updateCategory: (id: string, updates: Partial<Pick<UserCategory, 'color'>>) => void;
   
   // Citation methods
   addCitation: (dreamId: string, citedDreamId: string) => void;
@@ -135,4 +133,5 @@ export interface DreamStore {
   // Data export/import methods
   exportData: () => { dreams: Dream[]; trashedDreams: Dream[]; categories: UserCategory[] };
   importData: (dreams: Dream[], trashedDreams: Dream[], categories?: UserCategory[]) => void;
+  resetAllData: () => void;
 }

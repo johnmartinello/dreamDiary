@@ -6,7 +6,7 @@ import { TagPill } from './TagPill';
 import { useI18n } from '../../hooks/useI18n';
 import { useDreamStore } from '../../store/dreamStore';
 import { cn } from '../../utils';
-import { getCategoryName, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
+import { getFixedCategoryDefaultName, getFixedCategoryLabelKey, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
 import type { CategoryColor } from '../../types/taxonomy';
 
 interface TagStats {
@@ -48,6 +48,19 @@ export function CategoryAnalysis() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [textFilter, setTextFilter] = useState('');
 
+  const getCategoryDisplayName = (categoryId: string): string => {
+    if (!categoryId || categoryId === UNCATEGORIZED_CATEGORY_ID) {
+      return t('uncategorized');
+    }
+    const key = getFixedCategoryLabelKey(categoryId);
+    if (key) {
+      const translated = t(key);
+      if (translated !== key) return translated;
+      return getFixedCategoryDefaultName(categoryId) || translated;
+    }
+    return categories.find((category) => category.id === categoryId)?.name || categoryId;
+  };
+
   const tagStats = useMemo(() => {
     const stats: Record<string, TagStats> = {};
     const totalDreams = dreams.length;
@@ -60,7 +73,7 @@ export function CategoryAnalysis() {
             id: tag.id,
             label: tag.label,
             categoryId: tag.categoryId,
-            categoryLabel: getCategoryName(tag.categoryId, categories, t('uncategorized')),
+            categoryLabel: getCategoryDisplayName(tag.categoryId),
             color: getTagColor(tag.id),
             count: 0,
             percentage: 0,
@@ -132,7 +145,7 @@ export function CategoryAnalysis() {
     categories.forEach((category) => {
       summaries[category.id] = {
         categoryId: category.id,
-        categoryLabel: category.name,
+        categoryLabel: getCategoryDisplayName(category.id),
         color: category.color,
         totalTags: 0,
         totalUsage: 0,
@@ -144,7 +157,7 @@ export function CategoryAnalysis() {
       if (!summaries[tag.categoryId]) {
         summaries[tag.categoryId] = {
           categoryId: tag.categoryId,
-          categoryLabel: getCategoryName(tag.categoryId, categories, t('uncategorized')),
+          categoryLabel: getCategoryDisplayName(tag.categoryId),
           color: 'violet',
           totalTags: 0,
           totalUsage: 0,

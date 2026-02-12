@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Calendar, Clock, Trash2, Edit3, AlertTriangle, Link, Search, Tag, X } from 'lucide-react';
+import { ArrowLeft, Calendar, ChevronDown, Clock, Trash2, Edit3, AlertTriangle, Link, Search, Tag, X } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
 import { useI18n } from '../../hooks/useI18n';
 import { Button } from '../ui/Button';
@@ -13,7 +13,13 @@ import { Card } from '../ui/Card';
 import { formatDateForInput, getCurrentDateString, formatTime } from '../../utils';
 import { useDebounce } from '@uidotdev/usehooks';
 import { cn } from '../../utils';
-import { buildTagId, getCategoryName, resolveCategoryColorHex, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
+import {
+  buildTagId,
+  getFixedCategoryDefaultName,
+  getFixedCategoryLabelKey,
+  resolveCategoryColorHex,
+  UNCATEGORIZED_CATEGORY_ID,
+} from '../../types/taxonomy';
 import type { CategoryColor, DreamTag } from '../../types/taxonomy';
 
 
@@ -30,9 +36,7 @@ export function DreamEditor() {
     getTagColor,
     getAllTags,
     categories,
-    addCategory,
     updateCategory,
-    deleteCategory,
     addCitation,
     removeCitation,
 
@@ -50,9 +54,6 @@ export function DreamEditor() {
   const [showTagAutocomplete, setShowTagAutocomplete] = useState(false);
   const [tagAutocompleteIndex, setTagAutocompleteIndex] = useState(0);
   const [tagAutocompletePosition, setTagAutocompletePosition] = useState({ top: 0, left: 0, width: 0 });
-  const [showCreateCategoryInline, setShowCreateCategoryInline] = useState(false);
-  const [newCategoryNameInline, setNewCategoryNameInline] = useState('');
-  const [newCategoryColorInline, setNewCategoryColorInline] = useState<CategoryColor>('violet');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showCitedDreamModal, setShowCitedDreamModal] = useState(false);
@@ -69,11 +70,9 @@ export function DreamEditor() {
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryColor, setNewCategoryColor] = useState<CategoryColor>('violet');
   const [showColorPickerModal, setShowColorPickerModal] = useState(false);
   const [colorPickerTarget, setColorPickerTarget] = useState<{
-    mode: 'inline-new' | 'modal-new' | 'modal-edit';
+    mode: 'modal-edit';
     categoryId?: string;
   } | null>(null);
   const [colorPickerInitialColor, setColorPickerInitialColor] = useState<CategoryColor>('violet');
@@ -338,27 +337,20 @@ export function DreamEditor() {
     }
   };
 
-  const handleCreateCategoryInline = () => {
-    const name = newCategoryNameInline.trim();
-    if (!name) return;
-    const created = addCategory({ name, color: newCategoryColorInline });
-    setNewTagCategory(created.id);
-    setNewCategoryNameInline('');
-    setShowCreateCategoryInline(false);
+  const getCategoryDisplayName = (categoryId: string): string => {
+    if (!categoryId || categoryId === UNCATEGORIZED_CATEGORY_ID) {
+      return t('uncategorized');
+    }
+    const key = getFixedCategoryLabelKey(categoryId);
+    if (key) {
+      const translated = t(key);
+      if (translated !== key) return translated;
+      return getFixedCategoryDefaultName(categoryId) || translated;
+    }
+    return categories.find((category) => category.id === categoryId)?.name || categoryId;
   };
 
-  const handleCreateCategory = () => {
-    const name = newCategoryName.trim();
-    if (!name) return;
-    addCategory({ name, color: newCategoryColor });
-    setNewCategoryName('');
-    setNewCategoryColor('violet');
-  };
-
-  const openCategoryColorPicker = (
-    target: { mode: 'inline-new' | 'modal-new' | 'modal-edit'; categoryId?: string },
-    color: CategoryColor
-  ) => {
+  const openCategoryColorPicker = (target: { mode: 'modal-edit'; categoryId?: string }, color: CategoryColor) => {
     setColorPickerTarget(target);
     setColorPickerInitialColor(color);
     setShowColorPickerModal(true);
@@ -367,11 +359,7 @@ export function DreamEditor() {
   const handleCategoryColorPick = (color: CategoryColor) => {
     if (!colorPickerTarget) return;
 
-    if (colorPickerTarget.mode === 'inline-new') {
-      setNewCategoryColorInline(color);
-    } else if (colorPickerTarget.mode === 'modal-new') {
-      setNewCategoryColor(color);
-    } else if (colorPickerTarget.mode === 'modal-edit' && colorPickerTarget.categoryId) {
+    if (colorPickerTarget.mode === 'modal-edit' && colorPickerTarget.categoryId) {
       updateCategory(colorPickerTarget.categoryId, { color });
     }
 
@@ -484,7 +472,7 @@ export function DreamEditor() {
         kind: 'tag' as const,
         id: tag.id,
         title: tag.label,
-        subtitle: getCategoryName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID, categories, t('uncategorized')),
+        subtitle: getCategoryDisplayName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID),
       }));
 
     return [...dreamItems, ...tagItems].slice(0, 30);
@@ -505,7 +493,7 @@ export function DreamEditor() {
         kind: 'tag' as const,
         id: tag.id,
         label: tag.label,
-        secondary: getCategoryName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID, categories, t('uncategorized')),
+        secondary: getCategoryDisplayName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID),
       }));
     return [...dreamMentions, ...tagMentions].slice(0, 20);
   };
@@ -739,64 +727,31 @@ export function DreamEditor() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium text-gray-300">{t('category')}:</span>
-                    <select
-                      value={newTagCategory}
-                      onChange={(e) => {
-                        if (e.target.value === '__create__') {
-                          setShowCreateCategoryInline(true);
-                          return;
-                        }
-                        setShowCreateCategoryInline(false);
-                        setNewTagCategory(e.target.value);
-                      }}
-                      className="bg-transparent text-white/80 text-xs border border-white/10 rounded px-2 py-1"
-                    >
-                      <option value={UNCATEGORIZED_CATEGORY_ID} className="bg-gray-800">{t('uncategorized')}</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id} className="bg-gray-800">
-                          {category.name}
-                        </option>
-                      ))}
-                      <option value="__create__" className="bg-gray-800">{t('createNewCategory')}</option>
-                    </select>
+                    <div className="relative">
+                      <select
+                        value={newTagCategory}
+                        onChange={(e) => setNewTagCategory(e.target.value)}
+                        className="appearance-none bg-black/40 hover:bg-black/55 text-gray-100 text-sm border border-white/15 rounded-xl pl-3 pr-8 py-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400/35 focus:border-purple-300/35 shadow-[0_6px_16px_rgba(0,0,0,0.25)] [&>option]:bg-gray-900"
+                      >
+                        <option value={UNCATEGORIZED_CATEGORY_ID}>{t('uncategorized')}</option>
+                        {categories.map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {getCategoryDisplayName(category.id)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-gray-300 hover:text-white"
+                      className="text-xs text-gray-200 bg-black/35 border border-white/15 hover:text-white hover:bg-white/10 hover:border-white/25"
                       onClick={() => setShowManageCategoriesModal(true)}
                     >
                       {t('manageCategories')}
                     </Button>
                   </div>
 
-                  {showCreateCategoryInline && (
-                    <div className="flex items-center gap-2">
-                      <Input
-                        value={newCategoryNameInline}
-                        onChange={(e) => setNewCategoryNameInline(e.target.value)}
-                        placeholder={t('createCategory')}
-                        variant="transparent"
-                        className="w-48 border-b border-white/20 focus:border-gray-400 px-0 py-1 text-sm"
-                      />
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() =>
-                          openCategoryColorPicker({ mode: 'inline-new' }, newCategoryColorInline)
-                        }
-                        className="gap-2 h-8 px-2 text-xs text-gray-200"
-                      >
-                        <span
-                          className="w-4 h-4 rounded-full border"
-                          style={getColorChipStyle(newCategoryColorInline)}
-                        />
-                        {t('categoryColor')}
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={handleCreateCategoryInline}>
-                        {t('add')}
-                      </Button>
-                    </div>
-                  )}
                 </div>
 
                 {/* Tag Input (Option A: search existing first, then create) */}
@@ -831,7 +786,7 @@ export function DreamEditor() {
                       >
                         {matchingKnownTags.map((knownTag) => {
                           const categoryId = knownTag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID;
-                          const categoryName = getCategoryName(categoryId, categories, t('uncategorized'));
+                          const categoryName = getCategoryDisplayName(categoryId);
                           const itemIndex = matchingKnownTags.findIndex((item) => item.id === knownTag.id);
                           return (
                             <button
@@ -880,7 +835,7 @@ export function DreamEditor() {
                           size="sm"
                           variant="gradient"
                           color={getTagColor(tag.id)}
-                          tooltip={`${getCategoryName(tag.categoryId, categories, t('uncategorized'))} > ${tag.label}`}
+                          tooltip={`${getCategoryDisplayName(tag.categoryId)} > ${tag.label}`}
                         />
                     ))}
                   </div>
@@ -1150,7 +1105,7 @@ export function DreamEditor() {
                             size="sm"
                             variant="gradient"
                             color={getTagColor(tag.id)}
-                            tooltip={`${getCategoryName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID, categories, t('uncategorized'))} > ${tag.label}`}
+                            tooltip={`${getCategoryDisplayName(tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID)} > ${tag.label}`}
                           />
                           <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-white/20 text-gray-300">
                             {t('tags')}
@@ -1219,7 +1174,7 @@ export function DreamEditor() {
                         size="sm"
                         variant="gradient"
                         color={getTagColor(tag.id)}
-                        tooltip={`${getCategoryName(tag.categoryId, categories, t('uncategorized'))} > ${tag.label}`}
+                        tooltip={`${getCategoryDisplayName(tag.categoryId)} > ${tag.label}`}
                       />
                     ))}
                   </div>
@@ -1421,65 +1376,26 @@ export function DreamEditor() {
           className="max-w-lg"
         >
           <div className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder={t('categoryName')}
-                variant="transparent"
-                className="flex-1"
-              />
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-2 text-xs"
-                onClick={() => openCategoryColorPicker({ mode: 'modal-new' }, newCategoryColor)}
-              >
-                <span className="w-4 h-4 rounded-full border" style={getColorChipStyle(newCategoryColor)} />
-                {t('categoryColor')}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={handleCreateCategory}>
-                {t('add')}
-              </Button>
-            </div>
-
             <div className="space-y-2 max-h-64 overflow-auto">
-              {categories.length === 0 ? (
-                <div className="text-sm text-gray-400">{t('noCategoriesYet')}</div>
-              ) : (
-                categories.map((category) => (
-                  <div key={category.id} className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/10">
-                    <Input
-                      value={category.name}
-                      onChange={(e) => updateCategory(category.id, { name: e.target.value })}
-                      variant="transparent"
-                      className="flex-1"
-                    />
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="gap-2 text-xs"
-                      onClick={() =>
-                        openCategoryColorPicker(
-                          { mode: 'modal-edit', categoryId: category.id },
-                          category.color
-                        )
-                      }
-                    >
-                      <span className="w-4 h-4 rounded-full border" style={getColorChipStyle(category.color)} />
-                      {t('changeColor')}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-red-300 hover:text-red-200"
-                      onClick={() => deleteCategory(category.id)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))
-              )}
+              {categories.map((category) => (
+                <div key={category.id} className="flex items-center gap-2 bg-white/5 p-2 rounded border border-white/10">
+                  <div className="flex-1 text-sm text-white/90">{getCategoryDisplayName(category.id)}</div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-2 text-xs"
+                    onClick={() =>
+                      openCategoryColorPicker(
+                        { mode: 'modal-edit', categoryId: category.id },
+                        category.color
+                      )
+                    }
+                  >
+                    <span className="w-4 h-4 rounded-full border" style={getColorChipStyle(category.color)} />
+                    {t('changeColor')}
+                  </Button>
+                </div>
+              ))}
             </div>
           </div>
         </Modal>

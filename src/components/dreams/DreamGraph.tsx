@@ -9,7 +9,7 @@ import { TagPill } from './TagPill';
 import { formatDateForInput, useWindowSize } from '../../utils';
 import { cn } from '../../utils';
 import { useI18n } from '../../hooks/useI18n';
-import { resolveCategoryColorHex, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
+import { getFixedCategoryDefaultName, getFixedCategoryLabelKey, resolveCategoryColorHex, UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
 import type { CategoryColor } from '../../types/taxonomy';
 
 interface GraphNode {
@@ -57,6 +57,17 @@ export function DreamGraph() {
   
   // Get window size for responsive design
   const { width: windowWidth, height: windowHeight } = useWindowSize();
+
+  const getCategoryDisplayName = useCallback((categoryId: string): string => {
+    if (!categoryId || categoryId === UNCATEGORIZED_CATEGORY_ID) return t('uncategorized');
+    const key = getFixedCategoryLabelKey(categoryId);
+    if (key) {
+      const translated = t(key);
+      if (translated !== key) return translated;
+      return getFixedCategoryDefaultName(categoryId) || translated;
+    }
+    return categories.find((category) => category.id === categoryId)?.name || categoryId;
+  }, [categories, t]);
 
   // Calculate responsive graph dimensions
   const graphDimensions = useMemo(() => {
@@ -314,15 +325,15 @@ export function DreamGraph() {
                   {t('categories')}
                 </label>
                 <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
-                  {[{ id: UNCATEGORIZED_CATEGORY_ID, name: t('uncategorized'), color: 'violet' as CategoryColor }, ...categories].map((meta) => (
+                  {[{ id: UNCATEGORIZED_CATEGORY_ID, color: 'violet' as CategoryColor }, ...categories].map((meta) => (
                     <button
                       key={meta.id}
                       onClick={() => handleTagToggle(`category:${meta.id}`)}
                       className="cursor-pointer"
-                      title={meta.name}
+                      title={getCategoryDisplayName(meta.id)}
                     >
                       <TagPill
-                        tag={meta.name}
+                        tag={getCategoryDisplayName(meta.id)}
                         size="sm"
                         variant={graphFilters.selectedTags.includes(`category:${meta.id}`) ? "gradient" : "default"}
                         color={meta.color}

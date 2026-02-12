@@ -61,9 +61,9 @@ export function CategoryColorPickerModal({
       className="max-w-md"
     >
       <div className="space-y-5">
-        <div>
+        <div className="rounded-xl border border-white/10 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-wide text-gray-400 mb-3">{t('presetColors')}</p>
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-5 gap-2.5">
             {CATEGORY_COLORS.map((preset) => {
               const swatchHex = resolveCategoryColorHex(preset);
               const isSelected = selectedColor === preset;
@@ -71,11 +71,13 @@ export function CategoryColorPickerModal({
                 <button
                   key={preset}
                   type="button"
-                  className="h-10 rounded-lg border transition-all duration-200 hover:scale-[1.03]"
+                  className="h-10 rounded-xl border transition-all duration-200 hover:scale-[1.03] hover:brightness-110"
                   style={{
-                    background: `linear-gradient(145deg, ${swatchHex}, ${swatchHex}CC)`,
-                    borderColor: isSelected ? '#FFFFFFAA' : '#FFFFFF33',
-                    boxShadow: isSelected ? `0 0 0 2px ${swatchHex}66` : undefined,
+                    background: `linear-gradient(145deg, ${swatchHex}D6, ${swatchHex}96)`,
+                    borderColor: isSelected ? '#FFFFFFCC' : '#FFFFFF26',
+                    boxShadow: isSelected
+                      ? `0 0 0 2px #FFFFFF44, 0 6px 14px ${swatchHex}55`
+                      : `0 4px 10px ${swatchHex}33`,
                   }}
                   onClick={() => setSelectedColor(preset)}
                   aria-label={preset}
@@ -88,7 +90,7 @@ export function CategoryColorPickerModal({
           </div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 rounded-xl border border-white/10 bg-black/30 p-4">
           <p className="text-xs uppercase tracking-wide text-gray-400">{t('customColor')}</p>
           <div className="flex items-center gap-2">
             <Input
@@ -96,7 +98,7 @@ export function CategoryColorPickerModal({
               onChange={(e) => setCustomHexInput(e.target.value)}
               placeholder="#7C3AED"
               variant="glass"
-              className="h-9"
+              className="h-9 bg-black/30 border-white/15 text-white placeholder:text-gray-500"
             />
             <input
               type="color"
@@ -105,7 +107,7 @@ export function CategoryColorPickerModal({
                 setCustomHexInput(e.target.value);
                 setSelectedColor(e.target.value.toUpperCase() as CategoryColor);
               }}
-              className="h-9 w-12 cursor-pointer rounded border border-white/20 bg-transparent"
+              className="h-9 w-12 cursor-pointer rounded-lg border border-white/20 bg-black/40"
               aria-label={t('customColor')}
             />
             <Button
@@ -128,12 +130,12 @@ export function CategoryColorPickerModal({
           )}
         </div>
 
-        <div className="rounded-lg border border-white/15 bg-white/5 p-3 flex items-center justify-between">
+        <div className="rounded-xl border border-white/15 bg-black/35 p-3 flex items-center justify-between">
           <span className="text-sm text-gray-300">{t('preview')}</span>
           <span
             className="inline-flex items-center px-3 py-1 rounded-full text-sm border"
             style={{
-              background: `linear-gradient(145deg, ${previewColor}3A, ${previewColor}22)`,
+              background: `linear-gradient(145deg, ${previewColor}45, ${previewColor}24)`,
               borderColor: `${previewColor}88`,
               color: '#F8FAFC',
             }}

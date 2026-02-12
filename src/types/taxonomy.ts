@@ -34,6 +34,13 @@ export interface DreamTag {
 
 export const UNCATEGORIZED_CATEGORY_ID = 'uncategorized';
 export const UNCATEGORIZED_COLOR: PresetCategoryColor = 'violet';
+export const FIXED_CATEGORY_IDS = ['emotions', 'characters', 'places', 'dream-types'] as const;
+export type FixedCategoryId = typeof FIXED_CATEGORY_IDS[number];
+export type FixedCategoryLabelKey =
+  | 'categoryEmotions'
+  | 'categoryCharacters'
+  | 'categoryPlaces'
+  | 'categoryDreamTypes';
 
 export const DEFAULT_CATEGORY_PRESETS: Array<{ id: string; name: string; color: PresetCategoryColor }> = [
   { id: 'emotions', name: 'Emotions', color: 'amber' },
@@ -41,6 +48,13 @@ export const DEFAULT_CATEGORY_PRESETS: Array<{ id: string; name: string; color: 
   { id: 'places', name: 'Places', color: 'blue' },
   { id: 'dream-types', name: 'Dream Types', color: 'pink' },
 ];
+
+export const FIXED_CATEGORY_LABEL_KEYS: Record<FixedCategoryId, FixedCategoryLabelKey> = {
+  emotions: 'categoryEmotions',
+  characters: 'categoryCharacters',
+  places: 'categoryPlaces',
+  'dream-types': 'categoryDreamTypes',
+};
 
 export const CATEGORY_COLORS: PresetCategoryColor[] = [
   'cyan',
@@ -80,6 +94,20 @@ export const PRESET_CATEGORY_COLOR_HEX: Record<PresetCategoryColor, string> = {
 
 export function isPresetCategoryColor(value: string): value is PresetCategoryColor {
   return (CATEGORY_COLORS as string[]).includes(value);
+}
+
+export function isFixedCategory(id: string): id is FixedCategoryId {
+  return (FIXED_CATEGORY_IDS as readonly string[]).includes(id);
+}
+
+export function getFixedCategoryLabelKey(id: string): FixedCategoryLabelKey | null {
+  if (!isFixedCategory(id)) return null;
+  return FIXED_CATEGORY_LABEL_KEYS[id];
+}
+
+export function getFixedCategoryDefaultName(id: string): string | null {
+  if (!isFixedCategory(id)) return null;
+  return DEFAULT_CATEGORY_PRESETS.find((preset) => preset.id === id)?.name ?? null;
 }
 
 export function normalizeHexColor(value?: string | null): `#${string}` | null {

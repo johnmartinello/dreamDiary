@@ -8,7 +8,7 @@ import { ConfigurationModal } from '../ConfigurationModal';
 import { TrashModal } from '../dreams/TrashModal';
 import { LockButton } from '../auth/LockButton';
 import { useMemo, useState } from 'react';
-import { getCategoryName, UNCATEGORIZED_CATEGORY_ID, UNCATEGORIZED_COLOR } from '../../types/taxonomy';
+import { getFixedCategoryDefaultName, getFixedCategoryLabelKey, UNCATEGORIZED_CATEGORY_ID, UNCATEGORIZED_COLOR } from '../../types/taxonomy';
 import type { CategoryColor } from '../../types/taxonomy';
 
 export function Sidebar() {
@@ -26,6 +26,17 @@ export function Sidebar() {
   const [showTrashModal, setShowTrashModal] = useState(false);
   const tags = getAllTagsWithColors();
 
+  const getCategoryDisplayName = (categoryId: string): string => {
+    if (!categoryId || categoryId === UNCATEGORIZED_CATEGORY_ID) return t('uncategorized');
+    const key = getFixedCategoryLabelKey(categoryId);
+    if (key) {
+      const translated = t(key);
+      if (translated !== key) return translated;
+      return getFixedCategoryDefaultName(categoryId) || translated;
+    }
+    return categories.find((category) => category.id === categoryId)?.name || categoryId;
+  };
+
   const groupedByCategory = useMemo(() => {
     const groups: Record<string, { label: string; color: CategoryColor; items: typeof tags }> = {};
 
@@ -37,7 +48,7 @@ export function Sidebar() {
 
     categories.forEach((category) => {
       groups[category.id] = {
-        label: category.name,
+        label: getCategoryDisplayName(category.id),
         color: category.color,
         items: [],
       };
@@ -47,7 +58,7 @@ export function Sidebar() {
       const categoryId = tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID;
       if (!groups[categoryId]) {
         groups[categoryId] = {
-          label: getCategoryName(categoryId, categories, t('uncategorized')),
+          label: getCategoryDisplayName(categoryId),
           color: UNCATEGORIZED_COLOR,
           items: [],
         };
