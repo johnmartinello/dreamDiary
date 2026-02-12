@@ -9,13 +9,13 @@ import { TagPill } from './TagPill';
 import { formatDateForInput, useWindowSize } from '../../utils';
 import { cn } from '../../utils';
 import { useI18n } from '../../hooks/useI18n';
-import { CATEGORY_META } from '../../types/taxonomy';
+import { UNCATEGORIZED_CATEGORY_ID } from '../../types/taxonomy';
 
 interface GraphNode {
   id: string;
   title: string;
   date: string;
-  tags: { id: string; label: string; categoryId: string; subcategoryId: string }[];
+  tags: { id: string; label: string; categoryId: string }[];
   citedDreams: string[];
   citationCount: number;
   x?: number;
@@ -42,6 +42,7 @@ export function DreamGraph() {
     graphFilters,
     getTagColor,
     getAllTagsWithColors,
+    categories,
   } = useDreamStore();
 
   const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; links: GraphEdge[] }>({ nodes: [], links: [] });
@@ -317,15 +318,15 @@ export function DreamGraph() {
                   {t('categories')}
                 </label>
                 <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
-                  {Object.values(CATEGORY_META).map(meta => (
+                  {[{ id: UNCATEGORIZED_CATEGORY_ID, name: t('uncategorized'), color: 'violet' as const }, ...categories].map((meta: any) => (
                     <button
                       key={meta.id}
                       onClick={() => handleTagToggle(`category:${meta.id}`)}
                       className="cursor-pointer"
-                      title={meta.label}
+                      title={meta.name}
                     >
                       <TagPill
-                        tag={meta.label}
+                        tag={meta.name}
                         size="sm"
                         variant={graphFilters.selectedTags.includes(`category:${meta.id}`) ? "gradient" : "default"}
                         color={meta.color as any}

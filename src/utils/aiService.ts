@@ -1,19 +1,17 @@
 import type { AIConfig, Language } from '../types';
-import type { HierarchicalTag } from '../types/taxonomy';
+import type { DreamTag, UserCategory } from '../types/taxonomy';
 import { buildTagId } from '../types/taxonomy';
-import type { CategoryId } from '../types/taxonomy';
-import type { SubcategoryId } from '../types/taxonomy';
 
 interface AITagGenerationRequest {
   content: string;
   config: AIConfig;
   language: Language;
-  categoryId?: CategoryId;
-  subcategoryId?: SubcategoryId;
+  categoryId?: string;
+  categories?: UserCategory[];
 }
 
 interface AITagGenerationResponse {
-  tags: HierarchicalTag[];
+  tags: DreamTag[];
   error?: string;
 }
 
@@ -50,9 +48,9 @@ export class AIService {
     try {
       switch (config.provider) {
         case 'gemini':
-          return await this.generateTagsWithGemini(content, config, request.language, request.categoryId, request.subcategoryId);
+          return await this.generateTagsWithGemini(content, config, request.language, request.categoryId, request.categories || []);
         case 'lmstudio':
-          return await this.generateTagsWithLMStudio(content, config, request.language, request.categoryId, request.subcategoryId);
+          return await this.generateTagsWithLMStudio(content, config, request.language, request.categoryId, request.categories || []);
         default:
           return { tags: [], error: 'Unsupported AI provider' };
       }
@@ -95,28 +93,41 @@ export class AIService {
     }
   }
 
-  private static async generateTagsWithGemini(content: string, config: AIConfig, language: Language, categoryId?: CategoryId, subcategoryId?: SubcategoryId): Promise<AITagGenerationResponse> {
+  private static async generateTagsWithGemini(
+    content: string,
+    config: AIConfig,
+    language: Language,
+    categoryId?: string,
+    categories: UserCategory[] = []
+  ): Promise<AITagGenerationResponse> {
+    const availableCategories = categories.map((category) => `${category.id}:${category.name}`).join(', ');
     const categoryLine = categoryId
       ? (language === 'pt-BR'
-          ? `Concentre-se em sugerir tags na categoria: ${String(categoryId)}${subcategoryId ? ` → ${String(subcategoryId)}` : ''}.\n`
-          : `Focus on suggesting tags in the category: ${String(categoryId)}${subcategoryId ? ` → ${String(subcategoryId)}` : ''}.\n`)
+          ? `Use apenas a categoria ${categoryId} para todas as tags.\n`
+          : `Use only category ${categoryId} for all tags.\n`)
       : '';
 
-    const prompt = language === 'pt-BR' ? `
-    ${categoryLine}Extraia 4-8 tags concisas (1-2 palavras) do texto do sonho abaixo. Retorne somente uma lista separada por vírgulas.
+    const prompt = language === 'pt-BR'
+      ? `
+${categoryLine}Extraia 4-8 tags concisas (1-2 palavras) do texto do sonho abaixo.
+Categorias disponíveis (id:nome): ${availableCategories || 'uncategorized:Sem categoria'}.
+Retorne SOMENTE JSON válido como uma lista:
+[{"label":"tag","categoryId":"id-da-categoria"}]
+Se nenhuma categoria encaixar, use "uncategorized".
 
-    Conteúdo do sonho:
-    ${content}
+Conteúdo do sonho:
+${content}
+`
+      : `
+${categoryLine}Extract 4-8 concise (1-2 words) tags from the dream text below.
+Available categories (id:name): ${availableCategories || 'uncategorized:Uncategorized'}.
+Return ONLY valid JSON as an array:
+[{"label":"tag","categoryId":"category-id"}]
+If no category fits, use "uncategorized".
 
-    Tags:
-    ` : `
-    ${categoryLine}Extract 4–8 concise (1–2 words) tags from the dream text below. Return only a comma-separated list.
-
-    Dream content:
-    ${content}
-
-    Tags:
-    `;
+Dream content:
+${content}
+`;
 
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.modelName}:generateContent?key=${config.apiKey}`, {
@@ -148,22 +159,7 @@ export class AIService {
         return { tags: [], error: 'No response from AI' };
       }
 
-      // Parse and convert to hierarchical tags (default to selected/Uncategorized)
-      const labels = generatedText
-        .split(',')
-        .map((tag: string) => tag.trim())
-        .filter((tag: string) => tag.length > 0)
-        .slice(0, 8);
-
-      const chosenCategory = categoryId || 'uncategorized';
-      const chosenSub = subcategoryId || 'Uncategorized';
-      const tags: HierarchicalTag[] = labels.map((label: string) => ({
-        id: buildTagId(chosenCategory, chosenSub as any, label),
-        label,
-        categoryId: chosenCategory,
-        subcategoryId: chosenSub as any,
-        isCustom: true,
-      }));
+      const tags = this.parseGeneratedTags(generatedText, categories, categoryId);
 
       return { tags };
     } catch (error) {
@@ -172,24 +168,37 @@ export class AIService {
     }
   }
 
-  private static async generateTagsWithLMStudio(content: string, config: AIConfig, language: Language, categoryId?: CategoryId, subcategoryId?: SubcategoryId): Promise<AITagGenerationResponse> {
+  private static async generateTagsWithLMStudio(
+    content: string,
+    config: AIConfig,
+    language: Language,
+    categoryId?: string,
+    categories: UserCategory[] = []
+  ): Promise<AITagGenerationResponse> {
+    const availableCategories = categories.map((category) => `${category.id}:${category.name}`).join(', ');
     const categoryLine = categoryId
       ? (language === 'pt-BR'
-          ? `Concentre-se em sugerir tags na categoria: ${String(categoryId)}${subcategoryId ? ` → ${String(subcategoryId)}` : ''}.\n`
-          : `Focus on suggesting tags in the category: ${String(categoryId)}${subcategoryId ? ` → ${String(subcategoryId)}` : ''}.\n`)
+          ? `Use apenas a categoria ${categoryId} para todas as tags.\n`
+          : `Use only category ${categoryId} for all tags.\n`)
       : '';
 
-    const prompt = language === 'pt-BR' ? `${categoryLine}Analise o seguinte conteúdo de sonho e gere 4-8 tags relevantes (1-2 palavras). Retorne apenas uma lista separada por vírgulas.
+    const prompt = language === 'pt-BR'
+      ? `${categoryLine}Analise o conteúdo do sonho e gere 4-8 tags relevantes (1-2 palavras).
+Categorias disponíveis (id:nome): ${availableCategories || 'uncategorized:Sem categoria'}.
+Retorne SOMENTE JSON válido no formato:
+[{"label":"tag","categoryId":"id-da-categoria"}]
+Use "uncategorized" quando necessário.
 
 Conteúdo do sonho:
-${content}
-
-Tags:` : `${categoryLine}Analyze the dream content and generate 4-8 relevant (1–2 words) tags. Return only a comma-separated list.
+${content}`
+      : `${categoryLine}Analyze the dream content and generate 4-8 relevant (1-2 words) tags.
+Available categories (id:name): ${availableCategories || 'uncategorized:Uncategorized'}.
+Return ONLY valid JSON in this format:
+[{"label":"tag","categoryId":"category-id"}]
+Use "uncategorized" when needed.
 
 Dream content:
-${content}
-
-Tags:`;
+${content}`;
 
     try {
       const isChat = /\/chat\/completions\b/.test(config.completionEndpoint);
@@ -241,28 +250,73 @@ Tags:`;
         return { tags: [], error: 'No response from AI' };
       }
 
-      // Parse and convert to hierarchical tags (default to selected/Uncategorized)
-      const labels = generatedText
-        .split(',')
-        .map((tag: string) => tag.trim())
-        .filter((tag: string) => tag.length > 0)
-        .slice(0, 8);
-
-      const chosenCategory = categoryId || 'uncategorized';
-      const chosenSub = subcategoryId || 'Uncategorized';
-      const tags: HierarchicalTag[] = labels.map((label) => ({
-        id: buildTagId(chosenCategory, chosenSub as any, label),
-        label,
-        categoryId: chosenCategory,
-        subcategoryId: chosenSub as any,
-        isCustom: true,
-      }));
+      const tags = this.parseGeneratedTags(generatedText, categories, categoryId);
 
       return { tags };
     } catch (error) {
       console.error('LM Studio API error:', error);
       return { tags: [], error: (error as Error).message || 'Failed to connect to LM Studio API' };
     }
+  }
+
+  private static parseGeneratedTags(
+    generatedText: string,
+    categories: UserCategory[],
+    forcedCategoryId?: string
+  ): DreamTag[] {
+    const validCategoryIds = new Set(categories.map((category) => category.id));
+    validCategoryIds.add('uncategorized');
+
+    const normalizeCategoryId = (input?: string): string => {
+      if (forcedCategoryId) return forcedCategoryId;
+      if (!input) return 'uncategorized';
+      return validCategoryIds.has(input) ? input : 'uncategorized';
+    };
+
+    const tryParseJson = () => {
+      const jsonMatch = generatedText.match(/\[[\s\S]*\]/);
+      if (!jsonMatch) return null;
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (!Array.isArray(parsed)) return null;
+        return parsed
+          .map((item) => ({
+            label: String(item?.label || '').trim(),
+            categoryId: normalizeCategoryId(String(item?.categoryId || '')),
+          }))
+          .filter((item) => item.label.length > 0)
+          .slice(0, 8);
+      } catch {
+        return null;
+      }
+    };
+
+    const parsedJson = tryParseJson();
+    const parsedItems = parsedJson
+      ? parsedJson
+      : generatedText
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+          .slice(0, 8)
+          .map((label) => ({
+            label,
+            categoryId: normalizeCategoryId(forcedCategoryId),
+          }));
+
+    const seen = new Set<string>();
+    return parsedItems
+      .map((item) => ({
+        id: buildTagId(item.categoryId, item.label),
+        label: item.label,
+        categoryId: item.categoryId,
+        isCustom: true,
+      }))
+      .filter((tag) => {
+        if (seen.has(tag.id)) return false;
+        seen.add(tag.id);
+        return true;
+      });
   }
 
   private static async generateTitleWithGemini(content: string, config: AIConfig, language: Language): Promise<AITitleGenerationResponse> {

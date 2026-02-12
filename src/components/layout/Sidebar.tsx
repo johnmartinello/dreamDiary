@@ -8,16 +8,17 @@ import { ConfigurationModal } from '../ConfigurationModal';
 import { TrashModal } from '../dreams/TrashModal';
 import { LockButton } from '../auth/LockButton';
 import { useMemo, useState } from 'react';
-import { CATEGORY_META, UNCATEGORIZED_META, SUBCATEGORY_OPTIONS, getTranslatedSubcategory } from '../../types/taxonomy';
+import { getCategoryName, UNCATEGORIZED_CATEGORY_ID, UNCATEGORIZED_COLOR } from '../../types/taxonomy';
 
 export function Sidebar() {
-  const { t, language } = useI18n();
+  const { t } = useI18n();
   const currentView = useDreamStore((state) => state.currentView);
   const selectedTag = useDreamStore((state) => state.selectedTag);
   const trashedDreams = useDreamStore((state) => state.trashedDreams);
   const setCurrentView = useDreamStore((state) => state.setCurrentView);
   const setSelectedTag = useDreamStore((state) => state.setSelectedTag);
   const getAllTagsWithColors = useDreamStore((state) => state.getAllTagsWithColors);
+  const categories = useDreamStore((state) => state.categories);
   
 
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -25,30 +26,36 @@ export function Sidebar() {
   const tags = getAllTagsWithColors();
 
   const groupedByCategory = useMemo(() => {
-    const groups: Record<string, { label: string; color: string; open: boolean; items: typeof tags; subcategories?: Record<string, typeof tags> }> = {} as any;
-    Object.values(CATEGORY_META).forEach(meta => {
-      groups[meta.id] = { label: t(`categoryNames.${meta.id}`), color: meta.color, open: true, items: [] as any, subcategories: {} };
-      // initialize subcategories buckets
-      (SUBCATEGORY_OPTIONS[meta.id as keyof typeof SUBCATEGORY_OPTIONS] || []).forEach((sub) => {
-        if (groups[meta.id].subcategories) groups[meta.id].subcategories![sub] = [] as any;
-      });
+    const groups: Record<string, { label: string; color: string; items: typeof tags }> = {};
+
+    groups[UNCATEGORIZED_CATEGORY_ID] = {
+      label: t('uncategorized'),
+      color: UNCATEGORIZED_COLOR,
+      items: [],
+    };
+
+    categories.forEach((category) => {
+      groups[category.id] = {
+        label: category.name,
+        color: category.color,
+        items: [],
+      };
     });
-    groups[UNCATEGORIZED_META.id] = { label: t(`categoryNames.${UNCATEGORIZED_META.id}`), color: UNCATEGORIZED_META.color, open: true, items: [] as any };
-    tags.forEach(t => {
-      const categoryId = (t.id.split('/')[0] || UNCATEGORIZED_META.id);
+
+    tags.forEach((tag) => {
+      const categoryId = tag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID;
       if (!groups[categoryId]) {
-        groups[categoryId] = { label: categoryId, color: 'violet', open: true, items: [] as any };
+        groups[categoryId] = {
+          label: getCategoryName(categoryId, categories, t('uncategorized')),
+          color: UNCATEGORIZED_COLOR,
+          items: [],
+        };
       }
-      // push into subcategory bucket when available
-      const sub = t.id.split('/')[1];
-      if (groups[categoryId].subcategories && sub && groups[categoryId].subcategories![sub]) {
-        groups[categoryId].subcategories![sub].push(t);
-      } else {
-        groups[categoryId].items.push(t);
-      }
+      groups[categoryId].items.push(tag);
     });
+
     return groups;
-  }, [tags]);
+  }, [categories, tags, t]);
 
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const toggleCategory = (id: string) => setOpenCategories(prev => ({ ...prev, [id]: !prev[id] }));
@@ -176,53 +183,24 @@ export function Sidebar() {
                             color={group.color as any}
                           />
                         </div>
-                        <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{group.items.reduce((s, i) => s + i.count, 0)}</span>
+                        <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{group.items.reduce((sum, item) => sum + item.count, 0)}</span>
                       </button>
                       {isOpen && (
-                        <div className="pl-6 mt-1 space-y-2">
-                          {/* Subcategories */}
-                          {group.subcategories && Object.entries(group.subcategories).map(([sub, items]) => (
-                            items.length > 0 ? (
-                              <div key={sub}>
-                                <div className="text-[11px] text-white/60 mb-1">{getTranslatedSubcategory(sub, language)}</div>
-                                <div className="space-y-1">
-                                  {items.map((tag) => (
-                                    <button
-                                      key={tag.id}
-                                      onClick={() => handleTagClick(tag.id)}
-                                      className={cn(
-                                        'w-full text-left px-3 py-2 rounded-lg text-xs transition-all duration-300 ease-out relative overflow-hidden group cursor-pointer flex items-center justify-between',
-                                        selectedTag === tag.id ? 'glass text-white/90 font-medium border border-white/20' : 'text-white/70 hover:glass hover:text-white/90 hover:border-white/20'
-                                      )}
-                                      title={tag.label}
-                                    >
-                                      <TagPill tag={tag.label} size="sm" variant="gradient" color={tag.color as any} />
-                                      <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{tag.count}</span>
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            ) : null
+                        <div className="pl-6 mt-1 space-y-1">
+                          {group.items.map((tag) => (
+                            <button
+                              key={tag.id}
+                              onClick={() => handleTagClick(tag.id)}
+                              className={cn(
+                                'w-full text-left px-3 py-2 rounded-lg text-xs transition-all duration-300 ease-out relative overflow-hidden group cursor-pointer flex items-center justify-between',
+                                selectedTag === tag.id ? 'glass text-white/90 font-medium border border-white/20' : 'text-white/70 hover:glass hover:text-white/90 hover:border-white/20'
+                              )}
+                              title={tag.label}
+                            >
+                              <TagPill tag={tag.label} size="sm" variant="gradient" color={tag.color as any} />
+                              <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{tag.count}</span>
+                            </button>
                           ))}
-                          {/* Or uncategorized items directly under category */}
-                          {group.items.length > 0 && (
-                            <div className="space-y-1">
-                              {group.items.map((tag) => (
-                                <button
-                                  key={tag.id}
-                                  onClick={() => handleTagClick(tag.id)}
-                                  className={cn(
-                                    'w-full text-left px-3 py-2 rounded-lg text-xs transition-all duration-300 ease-out relative overflow-hidden group cursor-pointer flex items-center justify-between',
-                                    selectedTag === tag.id ? 'glass text-white/90 font-medium border border-white/20' : 'text-white/70 hover:glass hover:text-white/90 hover:border-white/20'
-                                  )}
-                                  title={tag.label}
-                                >
-                                  <TagPill tag={tag.label} size="sm" variant="gradient" color={tag.color as any} />
-                                  <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{tag.count}</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
                         </div>
                       )}
                     </div>

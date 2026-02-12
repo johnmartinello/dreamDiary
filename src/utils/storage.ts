@@ -1,13 +1,21 @@
 import type { Dream, AIConfig, AIProvider, PasswordConfig } from '../types';
+import type { UserCategory, DreamTag } from '../types/taxonomy';
+import {
+  buildTagId,
+  DEFAULT_CATEGORY_PRESETS,
+  UNCATEGORIZED_CATEGORY_ID,
+  UNCATEGORIZED_COLOR,
+} from '../types/taxonomy';
 
 const DREAMS_STORAGE_KEY = 'dreams';
 const TRASHED_DREAMS_STORAGE_KEY = 'trashed_dreams';
+const CATEGORIES_STORAGE_KEY = 'categories';
 const AI_CONFIG_GEMINI_KEY = 'ai_config_gemini';
 const AI_CONFIG_LMSTUDIO_KEY = 'ai_config_lmstudio';
 const PASSWORD_CONFIG_KEY = 'password_config';
 const PASSWORD_HASH_KEY = 'password_hash';
 const FIRST_LAUNCH_KEY = 'first_launch';
-const MIGRATION_HIERARCHY_KEY = 'migration_hierarchical_tags_applied_v1';
+const MIGRATION_USER_CATEGORIES_KEY = 'migration_user_categories_applied_v1';
 
 const defaultGeminiConfig: AIConfig = {
   enabled: false,
@@ -53,14 +61,80 @@ const getElectronDataPath = () => {
   return null;
 };
 
-// Migration function to ensure all dreams have required fields and hard-reset tags
-const migrateDreams = (dreams: any[]): Dream[] => {
-  return dreams.map(dream => ({
+const LEGACY_CATEGORY_PRESETS: Record<string, { name: string; color: UserCategory['color'] }> = {
+  emotions: { name: 'Emotions & Moods', color: 'amber' },
+  characters: { name: 'Characters & Beings', color: 'indigo' },
+  places: { name: 'Places & Environments', color: 'blue' },
+  actions: { name: 'Actions & Events', color: 'orange' },
+  objects: { name: 'Objects & Items', color: 'teal' },
+  dreamTypes: { name: 'Dream Types & Styles', color: 'pink' },
+};
+
+const nowIso = () => new Date().toISOString();
+
+const makeCategory = (id: string, name: string, color: UserCategory['color']): UserCategory => {
+  const now = nowIso();
+  return { id, name, color, createdAt: now, updatedAt: now };
+};
+
+const normalizeTag = (rawTag: any): DreamTag | null => {
+  if (!rawTag || typeof rawTag !== 'object') return null;
+  const categoryId = String(rawTag.categoryId || UNCATEGORIZED_CATEGORY_ID);
+  const label = String(rawTag.label || '').trim();
+  if (!label) return null;
+  return {
+    id: buildTagId(categoryId, label),
+    label,
+    categoryId,
+    isCustom: Boolean(rawTag.isCustom),
+  };
+};
+
+const normalizeDream = (dream: any): Dream => {
+  const seen = new Set<string>();
+  const sourceTags: any[] = Array.isArray(dream.tags) ? dream.tags : [];
+  const normalizedTags = sourceTags
+    .map(normalizeTag)
+    .filter((tag): tag is DreamTag => Boolean(tag))
+    .filter((tag) => {
+      if (seen.has(tag.id)) return false;
+      seen.add(tag.id);
+      return true;
+    });
+
+  return {
     ...dream,
-    // Hard reset tags for new hierarchical system
-    tags: [],
-    citedDreams: dream.citedDreams || [],
-  }));
+    tags: normalizedTags,
+    citedDreams: Array.isArray(dream.citedDreams) ? dream.citedDreams : [],
+  };
+};
+
+const buildInitialCategoriesFromDreams = (dreams: Dream[], trashedDreams: Dream[]): UserCategory[] => {
+  const ids = new Set<string>();
+
+  [...dreams, ...trashedDreams].forEach((dream) => {
+    dream.tags.forEach((tag) => {
+      if (tag.categoryId && tag.categoryId !== UNCATEGORIZED_CATEGORY_ID) {
+        ids.add(tag.categoryId);
+      }
+    });
+  });
+
+  const fromExisting = Array.from(ids).map((id) => {
+    const preset = LEGACY_CATEGORY_PRESETS[id];
+    return makeCategory(id, preset?.name || id, preset?.color || UNCATEGORIZED_COLOR);
+  });
+
+  if (fromExisting.length > 0) {
+    return fromExisting;
+  }
+
+  return DEFAULT_CATEGORY_PRESETS.map((preset) => makeCategory(preset.id, preset.name, preset.color));
+};
+
+// Migration function to ensure all dreams have required fields and convert legacy tags
+const migrateDreams = (dreams: any[]): Dream[] => {
+  return dreams.map(normalizeDream);
 };
 
 // Helpers for Electron migration flag
@@ -72,7 +146,7 @@ const electronMigration = {
         const path = (window as any).require('path');
         const dataPath = getElectronDataPath();
         if (dataPath) {
-          const flagPath = path.join(dataPath, `${MIGRATION_HIERARCHY_KEY}.txt`);
+          const flagPath = path.join(dataPath, `${MIGRATION_USER_CATEGORIES_KEY}.txt`);
           return fs.existsSync(flagPath);
         }
       }
@@ -88,7 +162,7 @@ const electronMigration = {
         const path = (window as any).require('path');
         const dataPath = getElectronDataPath();
         if (dataPath) {
-          const flagPath = path.join(dataPath, `${MIGRATION_HIERARCHY_KEY}.txt`);
+          const flagPath = path.join(dataPath, `${MIGRATION_USER_CATEGORIES_KEY}.txt`);
           fs.writeFileSync(flagPath, 'done');
         }
       }
@@ -111,12 +185,11 @@ const electronStorage = {
             const dreams = JSON.parse(data);
             if (!electronMigration.getApplied()) {
               const migrated = migrateDreams(dreams);
-              // Save back immediately and set flag
               fs.writeFileSync(dreamsPath, JSON.stringify(migrated, null, 2));
               electronMigration.setApplied();
               return migrated;
             }
-            return dreams;
+            return migrateDreams(dreams);
           }
         }
       }
@@ -160,7 +233,7 @@ const electronStorage = {
               electronMigration.setApplied();
               return migrated;
             }
-            return dreams;
+            return migrateDreams(dreams);
           }
         }
       }
@@ -184,6 +257,54 @@ const electronStorage = {
       }
     } catch (error) {
       console.error('Error saving trashed dreams to Electron storage:', error);
+    }
+  },
+
+  getCategories: (): UserCategory[] => {
+    try {
+      if (isElectron() && (window as any).require) {
+        const fs = (window as any).require('fs');
+        const path = (window as any).require('path');
+        const dataPath = getElectronDataPath();
+        if (dataPath) {
+          const categoriesPath = path.join(dataPath, 'categories.json');
+          if (fs.existsSync(categoriesPath)) {
+            const data = fs.readFileSync(categoriesPath, 'utf8');
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed;
+            }
+          }
+
+          const dreamsPath = path.join(dataPath, 'dreams.json');
+          const trashedDreamsPath = path.join(dataPath, 'trashed_dreams.json');
+          const dreams = fs.existsSync(dreamsPath) ? migrateDreams(JSON.parse(fs.readFileSync(dreamsPath, 'utf8'))) : [];
+          const trashedDreams = fs.existsSync(trashedDreamsPath) ? migrateDreams(JSON.parse(fs.readFileSync(trashedDreamsPath, 'utf8'))) : [];
+          const seeded = buildInitialCategoriesFromDreams(dreams, trashedDreams);
+          fs.writeFileSync(categoriesPath, JSON.stringify(seeded, null, 2));
+          return seeded;
+        }
+      }
+      return [];
+    } catch (error) {
+      console.error('Error loading categories from Electron storage:', error);
+      return [];
+    }
+  },
+
+  saveCategories: (categories: UserCategory[]): void => {
+    try {
+      if (isElectron() && (window as any).require) {
+        const fs = (window as any).require('fs');
+        const path = (window as any).require('path');
+        const dataPath = getElectronDataPath();
+        if (dataPath) {
+          const categoriesPath = path.join(dataPath, 'categories.json');
+          fs.writeFileSync(categoriesPath, JSON.stringify(categories, null, 2));
+        }
+      }
+    } catch (error) {
+      console.error('Error saving categories to Electron storage:', error);
     }
   },
 
@@ -346,14 +467,14 @@ const browserStorage = {
     try {
       const stored = localStorage.getItem(DREAMS_STORAGE_KEY);
       const dreams = stored ? JSON.parse(stored) : [];
-      const applied = localStorage.getItem(MIGRATION_HIERARCHY_KEY) === 'true';
+      const applied = localStorage.getItem(MIGRATION_USER_CATEGORIES_KEY) === 'true';
       if (!applied && dreams.length > 0) {
         const migrated = migrateDreams(dreams);
         localStorage.setItem(DREAMS_STORAGE_KEY, JSON.stringify(migrated));
-        localStorage.setItem(MIGRATION_HIERARCHY_KEY, 'true');
+        localStorage.setItem(MIGRATION_USER_CATEGORIES_KEY, 'true');
         return migrated;
       }
-      return dreams;
+      return migrateDreams(dreams);
     } catch (error) {
       console.error('Error loading dreams from storage:', error);
       return [];
@@ -372,14 +493,14 @@ const browserStorage = {
     try {
       const stored = localStorage.getItem(TRASHED_DREAMS_STORAGE_KEY);
       const dreams = stored ? JSON.parse(stored) : [];
-      const applied = localStorage.getItem(MIGRATION_HIERARCHY_KEY) === 'true';
+      const applied = localStorage.getItem(MIGRATION_USER_CATEGORIES_KEY) === 'true';
       if (!applied && dreams.length > 0) {
         const migrated = migrateDreams(dreams);
         localStorage.setItem(TRASHED_DREAMS_STORAGE_KEY, JSON.stringify(migrated));
-        localStorage.setItem(MIGRATION_HIERARCHY_KEY, 'true');
+        localStorage.setItem(MIGRATION_USER_CATEGORIES_KEY, 'true');
         return migrated;
       }
-      return dreams;
+      return migrateDreams(dreams);
     } catch (error) {
       console.error('Error loading trashed dreams from storage:', error);
       return [];
@@ -391,6 +512,32 @@ const browserStorage = {
       localStorage.setItem(TRASHED_DREAMS_STORAGE_KEY, JSON.stringify(dreams));
     } catch (error) {
       console.error('Error saving trashed dreams to storage:', error);
+    }
+  },
+
+  getCategories: (): UserCategory[] => {
+    try {
+      const stored = localStorage.getItem(CATEGORIES_STORAGE_KEY);
+      const categories = stored ? JSON.parse(stored) : [];
+      if (Array.isArray(categories) && categories.length > 0) {
+        return categories;
+      }
+      const dreams = browserStorage.getDreams();
+      const trashedDreams = browserStorage.getTrashedDreams();
+      const seeded = buildInitialCategoriesFromDreams(dreams, trashedDreams);
+      localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(seeded));
+      return seeded;
+    } catch (error) {
+      console.error('Error loading categories from storage:', error);
+      return [];
+    }
+  },
+
+  saveCategories: (categories: UserCategory[]): void => {
+    try {
+      localStorage.setItem(CATEGORIES_STORAGE_KEY, JSON.stringify(categories));
+    } catch (error) {
+      console.error('Error saving categories to storage:', error);
     }
   },
 

@@ -1,28 +1,24 @@
 import { create } from 'zustand';
 import type { Dream, DreamStore, TagWithColor, GraphData, GraphFilters, Language } from '../types';
-import type { HierarchicalTag, CategoryColor, CategoryId } from '../types/taxonomy';
-import { getCategoryColor, CATEGORY_META, UNCATEGORIZED_META } from '../types/taxonomy';
+import type { CategoryColor, UserCategory } from '../types/taxonomy';
+import { getCategoryColor, UNCATEGORIZED_CATEGORY_ID, buildTagId } from '../types/taxonomy';
 import { storage } from '../utils/storage';
 import { AIService } from '../utils/aiService';
 import { generateId } from '../utils';
 
 // Resolve a category color from a tag id or a category id
-const resolveTagColor = (tagIdOrCategory: string): CategoryColor => {
-  // If it's a category id
-  if ((CATEGORY_META as any)[tagIdOrCategory]) {
-    return getCategoryColor(tagIdOrCategory as CategoryId);
-  }
-  // Try to parse from tag id pattern category/subcategory/label
+const resolveTagColor = (tagIdOrCategory: string, categories: UserCategory[]): CategoryColor => {
+  // Try to parse from tag id pattern category/label
   const parts = tagIdOrCategory.split('/');
   if (parts.length >= 1) {
-    const category = parts[0] as CategoryId;
-    return getCategoryColor(category);
+    return getCategoryColor(parts[0], categories);
   }
-  return UNCATEGORIZED_META.color;
+  return getCategoryColor(UNCATEGORIZED_CATEGORY_ID, categories);
 };
 
 export const useDreamStore = create<DreamStore>((set, get) => ({
   dreams: storage.getDreams(),
+  categories: storage.getCategories(),
   trashedDreams: storage.getTrashedDreams(),
   selectedDreamId: null,
   currentView: 'home',
@@ -41,8 +37,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
     const now = new Date().toISOString();
     const newDream: Dream = {
       ...dreamData,
-      // Ensure tags are hierarchical
-      tags: Array.isArray((dreamData as any).tags) ? (dreamData as any).tags as HierarchicalTag[] : [],
+      tags: Array.isArray((dreamData as any).tags) ? (dreamData as any).tags : [],
       citedDreams: dreamData.citedDreams || [], // Initialize empty citations
       id: generateId(),
       createdAt: now,
@@ -176,6 +171,87 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
     });
   },
 
+  getCategories: () => get().categories,
+
+  addCategory: (categoryInput) => {
+    const now = new Date().toISOString();
+    const baseId = categoryInput.name
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+    const fallbackId = baseId || generateId();
+
+    const existing = new Set(get().categories.map((c) => c.id));
+    let uniqueId = fallbackId;
+    let suffix = 2;
+    while (existing.has(uniqueId)) {
+      uniqueId = `${fallbackId}-${suffix}`;
+      suffix += 1;
+    }
+
+    const category: UserCategory = {
+      id: uniqueId,
+      name: categoryInput.name.trim(),
+      color: categoryInput.color,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    set((state) => {
+      const categories = [...state.categories, category];
+      storage.saveCategories(categories);
+      return { categories };
+    });
+
+    return category;
+  },
+
+  updateCategory: (id, updates) => {
+    set((state) => {
+      const categories = state.categories.map((category) =>
+        category.id === id
+          ? {
+              ...category,
+              ...updates,
+              name: (updates.name ?? category.name).trim(),
+              updatedAt: new Date().toISOString(),
+            }
+          : category
+      );
+      storage.saveCategories(categories);
+      return { categories };
+    });
+  },
+
+  deleteCategory: (id) => {
+    if (id === UNCATEGORIZED_CATEGORY_ID) return;
+    set((state) => {
+      const categories = state.categories.filter((category) => category.id !== id);
+      const dreams = state.dreams.map((dream) => ({
+        ...dream,
+        tags: dream.tags.map((tag) =>
+          tag.categoryId === id
+            ? { ...tag, categoryId: UNCATEGORIZED_CATEGORY_ID, id: buildTagId(UNCATEGORIZED_CATEGORY_ID, tag.label) }
+            : tag
+        ),
+      }));
+      const trashedDreams = state.trashedDreams.map((dream) => ({
+        ...dream,
+        tags: dream.tags.map((tag) =>
+          tag.categoryId === id
+            ? { ...tag, categoryId: UNCATEGORIZED_CATEGORY_ID, id: buildTagId(UNCATEGORIZED_CATEGORY_ID, tag.label) }
+            : tag
+        ),
+      }));
+      storage.saveCategories(categories);
+      storage.saveDreams(dreams);
+      storage.saveTrashedDreams(trashedDreams);
+      return { categories, dreams, trashedDreams };
+    });
+  },
+
   updateAIConfig: (config) => {
     set((state) => {
       const updatedConfig = { ...state.aiConfig, ...config };
@@ -197,8 +273,8 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
     });
   },
 
-  generateAITags: async (dreamContent: string, language: Language = 'en', categoryId?: CategoryId, subcategoryId?: any) => {
-    const { aiConfig } = get();
+  generateAITags: async (dreamContent: string, language: Language = 'en', categoryId?: string) => {
+    const { aiConfig, categories } = get();
     
     if (!aiConfig.enabled) {
       throw new Error('AI is disabled');
@@ -209,7 +285,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       config: aiConfig,
       language,
       categoryId,
-      subcategoryId,
+      categories,
     });
 
     if (result.error) {
@@ -246,7 +322,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
     // Filter by tag if selected
     if (selectedTag) {
       if (selectedTag.startsWith('category:')) {
-        const category = selectedTag.split(':')[1] as CategoryId;
+        const category = selectedTag.split(':')[1];
         filteredDreams = filteredDreams.filter((dream) => dream.tags.some(t => t.categoryId === category));
       } else {
         filteredDreams = filteredDreams.filter((dream) => dream.tags.some(t => t.id === selectedTag));
@@ -300,7 +376,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   },
 
   getAllTagsWithColors: (): TagWithColor[] => {
-    const { dreams } = get();
+    const { dreams, categories } = get();
     const tagCounts: Record<string, { label: string; category: string; count: number }> = {};
     
     dreams.forEach((dream) => {
@@ -315,13 +391,13 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
         id,
         label: info.label,
         count: info.count,
-        color: resolveTagColor(info.category)
+        color: resolveTagColor(info.category, categories)
       }))
       .sort((a, b) => b.count - a.count);
   },
 
   getTagColor: (tagIdOrCategory: string): CategoryColor => {
-    return resolveTagColor(tagIdOrCategory);
+    return resolveTagColor(tagIdOrCategory, get().categories);
   },
 
   // Citation methods
@@ -452,14 +528,19 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
 
   // Data export/import methods
   exportData: () => {
-    const { dreams, trashedDreams } = get();
-    return { dreams, trashedDreams };
+    const { dreams, trashedDreams, categories } = get();
+    return { dreams, trashedDreams, categories };
   },
 
-  importData: (importedDreams: Dream[], importedTrashedDreams: Dream[]) => {
+  importData: (
+    importedDreams: Dream[],
+    importedTrashedDreams: Dream[],
+    importedCategories: UserCategory[] = []
+  ) => {
     set((state) => {
       const existingDreamIds = new Set(state.dreams.map(d => d.id));
       const existingTrashedIds = new Set(state.trashedDreams.map(d => d.id));
+      const existingCategoryIds = new Set(state.categories.map(c => c.id));
       
       // Create ID mapping for imported dreams to handle duplicates
       const idMapping = new Map<string, string>();
@@ -522,14 +603,20 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       // Merge with existing data
       const mergedDreams = [...state.dreams, ...finalProcessedDreams];
       const mergedTrashedDreams = [...state.trashedDreams, ...finalProcessedTrashedDreams];
+      const mergedCategories = [
+        ...state.categories,
+        ...importedCategories.filter(category => !existingCategoryIds.has(category.id)),
+      ];
       
       // Save to storage
       storage.saveDreams(mergedDreams);
       storage.saveTrashedDreams(mergedTrashedDreams);
+      storage.saveCategories(mergedCategories);
       
       return {
         dreams: mergedDreams,
         trashedDreams: mergedTrashedDreams,
+        categories: mergedCategories,
       };
     });
   },

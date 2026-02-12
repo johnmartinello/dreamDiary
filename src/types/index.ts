@@ -1,12 +1,11 @@
-import type { HierarchicalTag, CategoryColor, CategoryId } from './taxonomy';
-import type { SubcategoryId } from './taxonomy';
+import type { DreamTag, CategoryColor, UserCategory } from './taxonomy';
 
 export interface Dream {
   id: string;
   title: string;
   date: string;
   description: string;
-  tags: HierarchicalTag[];
+  tags: DreamTag[];
   citedDreams: string[]; // Array of dream IDs that this dream cites
   createdAt: string;
   updatedAt: string;
@@ -44,7 +43,7 @@ export interface GraphNode {
   id: string;
   title: string;
   date: string;
-  tags: HierarchicalTag[];
+  tags: DreamTag[];
   citedDreams: string[];
   citationCount: number; // How many dreams cite this dream
   x?: number;
@@ -96,6 +95,7 @@ export interface PasswordStore {
 
 export interface DreamStore {
   dreams: Dream[];
+  categories: UserCategory[];
   trashedDreams: Dream[]; // Array of dreams in trash
   selectedDreamId: string | null;
   currentView: ViewType;
@@ -122,14 +122,17 @@ export interface DreamStore {
   getAllTags: () => Tag[];
   getAllTagsWithColors: () => TagWithColor[];
   getTagColor: (tagIdOrCategory: string) => CategoryColor;
+  getCategories: () => UserCategory[];
+  addCategory: (category: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>) => UserCategory;
+  updateCategory: (id: string, updates: Partial<Pick<UserCategory, 'name' | 'color'>>) => void;
+  deleteCategory: (id: string) => void;
   updateAIConfig: (config: Partial<AIConfig>) => void;
   setAIProvider: (provider: AIProvider) => void;
   generateAITags: (
     dreamContent: string,
     language?: Language,
-    categoryId?: CategoryId,
-    subcategoryId?: SubcategoryId
-  ) => Promise<HierarchicalTag[]>;
+    categoryId?: string
+  ) => Promise<DreamTag[]>;
   generateAITitle: (dreamContent: string, language?: Language) => Promise<string>;
   
   // Citation methods
@@ -144,6 +147,6 @@ export interface DreamStore {
   getDreamById: (id: string) => Dream | undefined;
   
   // Data export/import methods
-  exportData: () => { dreams: Dream[]; trashedDreams: Dream[] };
-  importData: (dreams: Dream[], trashedDreams: Dream[]) => void;
+  exportData: () => { dreams: Dream[]; trashedDreams: Dream[]; categories: UserCategory[] };
+  importData: (dreams: Dream[], trashedDreams: Dream[], categories?: UserCategory[]) => void;
 }

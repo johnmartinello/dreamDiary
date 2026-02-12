@@ -18,7 +18,7 @@ export const en = {
   clear: 'Clear',
   search: 'Search',
   searchByName: 'Search by name',
-  searchTagsPlaceholder: 'Search tags, categories, subcategories...',
+  searchTagsPlaceholder: 'Search tags and categories...',
   
   // Dream related
   dream: 'Dream',
@@ -36,57 +36,20 @@ export const en = {
   describeYourDream: 'Describe your dream in detail... Let your thoughts flow naturally... use @ to cite dreams',
   addCategory: 'Add Category...',
   category: 'Category',
-  subcategory: 'Subcategory',
+  uncategorized: 'Uncategorized',
+  manageCategories: 'Manage Categories',
+  createCategory: 'Create Category',
+  editCategory: 'Edit Category',
+  deleteCategory: 'Delete Category',
+  categoryName: 'Category name',
+  categoryColor: 'Category color',
+  confirmDeleteCategory: 'Delete this category?',
+  noCategoriesYet: 'No categories yet',
+  createNewCategory: 'Create new category',
+  newTag: 'New Tag',
+  selectCategory: 'Select category',
+  searchOrCreateTag: 'Search existing tags or create a new one...',
   noTagsYet: 'No tags yet',
-  
-  // Category translations
-  categoryNames: {
-    emotions: 'Emotions & Moods',
-    characters: 'Characters & Beings',
-    places: 'Places & Environments',
-    actions: 'Actions & Events',
-    objects: 'Objects & Items',
-    dreamTypes: 'Dream Types & Styles',
-    uncategorized: 'Uncategorized',
-  },
-  
-  // Subcategory translations
-  subcategories: {
-    // Emotions
-    positive: 'Positive',
-    negative: 'Negative',
-    complexStates: 'Complex States',
-    
-    // Characters
-    people: 'People',
-    animals: 'Animals',
-    mythicalSpiritual: 'Mythical/Spiritual',
-    deceasedMemoryFigures: 'Deceased/Memory Figures',
-    
-    // Places
-    naturalSettings: 'Natural Settings',
-    urbanManmade: 'Urban/Manmade',
-    cosmicUnreal: 'Cosmic/Unreal',
-    weatherAtmosphere: 'Weather/Atmosphere',
-    
-    // Actions
-    movement: 'Movement',
-    interactions: 'Interactions',
-    transformations: 'Transformations',
-    unusualEvents: 'Unusual Events',
-    
-    // Objects
-    everydayObjects: 'Everyday Objects',
-    mysticalUnrealItems: 'Mystical/Unreal Items',
-    technologyMachines: 'Technology/Machines',
-    symbolsSigns: 'Symbols/Signs',
-    
-    // Dream Types
-    lucidity: 'Lucidity',
-    tone: 'Tone',
-    purposeMeaning: 'Purpose/Meaning',
-    physicalState: 'Physical State',
-  },
   tagsWillAppear: 'Tags will appear here as you add them',
   noNewTags: 'No new tags were generated',
   noTitleGenerated: 'No title was generated',
@@ -317,15 +280,12 @@ export const en = {
   avgTagsPerDream: 'Avg tags per dream',
   customTags: 'Custom Tags',
   filterByCategory: 'Filter by Category',
-  filterBySubcategory: 'Filter by Subcategory',
   allCategories: 'All Categories',
-  allSubcategories: 'All Subcategories',
   tagCoOccurrences: 'Tag Co-occurrences',
   tagTrends: 'Tag Trends',
   noTagsFound: 'No Tags Found',
   customTag: 'Custom Tag',
   uses: 'uses',
-  subcategoryBreakdown: 'Subcategory Breakdown',
   tagInsights: 'Insights',
   tagOverviewDescription: 'Get a quick overview of your dream tags',
   tagAnalysisDescription: 'Deep dive into tag relationships and patterns',

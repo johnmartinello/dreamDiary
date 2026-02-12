@@ -8,7 +8,7 @@ export const translations = {
   'pt-BR': ptBR,
 };
 
-export type TranslationKey = keyof typeof en | 'geminiInstructions.title' | 'geminiInstructions.description' | 'geminiInstructions.steps' | 'lmStudioInstructions.title' | 'lmStudioInstructions.description' | 'lmStudioInstructions.steps' | 'months' | 'weekdays' | 'categoryNames.emotions' | 'categoryNames.characters' | 'categoryNames.places' | 'categoryNames.actions' | 'categoryNames.objects' | 'categoryNames.dreamTypes' | 'categoryNames.uncategorized' | 'subcategories.positive' | 'subcategories.negative' | 'subcategories.complexStates' | 'subcategories.people' | 'subcategories.animals' | 'subcategories.mythicalSpiritual' | 'subcategories.deceasedMemoryFigures' | 'subcategories.naturalSettings' | 'subcategories.urbanManmade' | 'subcategories.cosmicUnreal' | 'subcategories.weatherAtmosphere' | 'subcategories.movement' | 'subcategories.interactions' | 'subcategories.transformations' | 'subcategories.unusualEvents' | 'subcategories.everydayObjects' | 'subcategories.mysticalUnrealItems' | 'subcategories.technologyMachines' | 'subcategories.symbolsSigns' | 'subcategories.lucidity' | 'subcategories.tone' | 'subcategories.purposeMeaning' | 'subcategories.physicalState';
+export type TranslationKey = keyof typeof en | string;
 
 // Function to get nested object properties
 function getNestedValue(obj: any, path: string): any {
