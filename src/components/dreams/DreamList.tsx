@@ -9,6 +9,7 @@ import { Button } from '../ui/Button';
 import { SearchBar } from './SearchBar';
 import { DateFilter } from './DateFilter';
 import { useI18n } from '../../hooks/useI18n';
+import { DreamCalendarHeatmap } from './DreamCalendarHeatmap';
 
 export function DreamList() {
   const { t } = useI18n();
@@ -92,6 +93,8 @@ export function DreamList() {
               <Plus className="w-5 h-5 relative z-10" />
             </Button>
           </div>
+
+          <DreamCalendarHeatmap />
           
           {/* Search and Filter Row */}
           <div className="flex items-center gap-4">

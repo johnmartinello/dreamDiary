@@ -23,6 +23,11 @@ export const en = {
   // Dream related
   dream: 'Dream',
   dreams: 'Dreams',
+  dreamCalendar: 'Dream Activity',
+  dreamsOnDate: '{count} dream(s) on {date}',
+  noDreamsOnDate: 'No dreams on {date}',
+  less: 'Less',
+  more: 'More',
   dreamTitle: 'Dream title',
   dreamContent: 'Dream content',
   dreamDate: 'Dream date',

@@ -23,6 +23,11 @@ export const ptBR = {
   // Dream related
   dream: 'Sonho',
   dreams: 'Sonhos',
+  dreamCalendar: 'Atividade de Sonhos',
+  dreamsOnDate: '{count} sonho(s) em {date}',
+  noDreamsOnDate: 'Nenhum sonho em {date}',
+  less: 'Menos',
+  more: 'Mais',
   dreamTitle: 'Título do sonho',
   dreamContent: 'Conteúdo do sonho',
   dreamDate: 'Data do sonho',
