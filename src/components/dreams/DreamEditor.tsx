@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowLeft, Calendar, Clock, Trash2, Edit3, AlertTriangle, Sparkles, X, Check, Link, Search, Tag } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Trash2, Edit3, AlertTriangle, Link, Search, Tag, X } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
 import { useI18n } from '../../hooks/useI18n';
 import { Button } from '../ui/Button';
@@ -18,7 +18,7 @@ import type { DreamTag } from '../../types/taxonomy';
 
 
 export function DreamEditor() {
-  const { t, tArray, language } = useI18n();
+  const { t, tArray } = useI18n();
   const {
     dreams,
     selectedDreamId,
@@ -26,9 +26,6 @@ export function DreamEditor() {
     setCurrentView,
     updateDream,
     deleteDream,
-    generateAITags,
-    generateAITitle,
-    aiConfig,
     getTagColor,
     getAllTags,
     categories,
@@ -70,15 +67,6 @@ export function DreamEditor() {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedDay, setSelectedDay] = useState(new Date().getDate());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
-  const [showAITagModal, setShowAITagModal] = useState(false);
-  const [suggestedTags, setSuggestedTags] = useState<DreamTag[]>([]);
-  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
-  const [suggestedTitle, setSuggestedTitle] = useState<string>('');
-  const [showTitleSuggestion, setShowTitleSuggestion] = useState(false);
-  const [editingTag, setEditingTag] = useState<string>('');
-  const [editingId, setEditingId] = useState<string>('');
-  const [editingCategory, setEditingCategory] = useState<string>('uncategorized');
   const [showManageCategoriesModal, setShowManageCategoriesModal] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newCategoryColor, setNewCategoryColor] = useState<'cyan' | 'purple' | 'pink' | 'emerald' | 'amber' | 'blue' | 'indigo' | 'violet' | 'rose' | 'teal' | 'lime' | 'orange' | 'red' | 'green' | 'yellow'>('violet');
@@ -103,7 +91,6 @@ export function DreamEditor() {
   // Modal refs (no longer using useClickOutside)
   const deleteModalRef = useRef<HTMLDivElement>(null);
   const dateModalRef = useRef<HTMLDivElement>(null);
-  const aiTagModalRef = useRef<HTMLDivElement>(null);
 
   // Debounced values for auto-save
   const debouncedTitle = useDebounce(title, 500);
@@ -341,121 +328,6 @@ export function DreamEditor() {
       } else {
         handleAddTag();
       }
-    }
-  };
-
-  const handleGenerateAITags = async () => {
-    if (!description.trim()) {
-      alert(t('pleaseAddContent'));
-      return;
-    }
-
-    setIsGeneratingTags(true);
-    try {
-      const generatedTags = await generateAITags(
-        description,
-        language,
-        (newTagCategory as any)
-      );
-      
-      // Filter out tags that already exist
-      const newTags = generatedTags.filter((tag) => !tags.some(t => t.id === tag.id));
-      
-      if (newTags.length > 0) {
-        setSuggestedTags(newTags);
-        setShowAITagModal(true);
-      } else {
-        alert(t('noNewTags'));
-      }
-    } catch (error) {
-      console.error('Error generating categories:', error);
-      const errorMessage = error instanceof Error ? error.message : t('errorOccurred');
-      alert(`${t('failedToGenerateTags')}: ${errorMessage}`);
-    } finally {
-      setIsGeneratingTags(false);
-    }
-  };
-
-  const handleGenerateAITitle = async () => {
-    if (!description.trim()) {
-      alert(t('pleaseAddContent'));
-      return;
-    }
-
-    setIsGeneratingTitle(true);
-    try {
-      const generatedTitle = await generateAITitle(description, language);
-      
-      if (generatedTitle && generatedTitle.trim()) {
-        setSuggestedTitle(generatedTitle.trim());
-        setShowTitleSuggestion(true);
-      } else {
-        alert(t('noTitleGenerated'));
-      }
-    } catch (error) {
-      console.error('Error generating title:', error);
-      const errorMessage = error instanceof Error ? error.message : t('errorOccurred');
-      alert(`${t('failedToGenerateTitle')}: ${errorMessage}`);
-    } finally {
-      setIsGeneratingTitle(false);
-    }
-  };
-
-  const handleAcceptTitleSuggestion = () => {
-    setTitle(suggestedTitle);
-    setShowTitleSuggestion(false);
-    setSuggestedTitle('');
-  };
-
-  const handleRejectTitleSuggestion = () => {
-    setShowTitleSuggestion(false);
-    setSuggestedTitle('');
-  };
-
-  const handleConfirmAITags = () => {
-    setTags([...tags, ...suggestedTags]);
-    setShowAITagModal(false);
-    setSuggestedTags([]);
-  };
-
-  const handleCancelAITags = () => {
-    setShowAITagModal(false);
-    setSuggestedTags([]);
-  };
-
-  const handleRemoveSuggestedTag = (id: string) => {
-    setSuggestedTags(suggestedTags.filter((t) => t.id !== id));
-  };
-
-  const handleEditSuggestedTag = (tag: DreamTag) => {
-    setEditingId(tag.id);
-    setEditingTag(tag.label);
-    setEditingCategory(tag.categoryId);
-  };
-
-  const handleSaveEditedTag = () => {
-    const label = editingTag.trim();
-    if (!label || !editingId) return;
-    const id = buildTagId(editingCategory as any, label);
-    setSuggestedTags(suggestedTags.map(t => t.id === editingId ? {
-      ...t,
-      id,
-      label,
-      categoryId: editingCategory as any,
-    } : t));
-    setEditingId('');
-    setEditingTag('');
-  };
-
-
-
-  const handleAddSuggestedTag = () => {
-    const label = editingTag.trim();
-    if (!label) return;
-    const id = buildTagId(editingCategory as any, label);
-    if (!suggestedTags.some(t => t.id === id)) {
-      setSuggestedTags([...suggestedTags, { id, label, categoryId: editingCategory as any, isCustom: true }]);
-      setEditingTag('');
     }
   };
 
@@ -795,27 +667,13 @@ export function DreamEditor() {
               {/* Title and Date Row */}
               <div className="flex items-center justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <Input
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      placeholder={t('titlePlaceholder')}
-                      variant="transparent"
-                      className="text-3xl font-bold px-0 py-2 rounded-xl border border-white/10 text-white/80 hover:glass hover:text-white/90 hover:font-medium hover:shadow-inner-lg hover:border-white/20 transition-all duration-300"
-                    />
-                    {/* AI Title Generation Button */}
-                    {aiConfig.enabled && (
-                      <Button
-                        onClick={handleGenerateAITitle}
-                        disabled={isGeneratingTitle || !description.trim()}
-                        size="sm"
-                        variant="ghost"
-                        className="text-gray-300 hover:text-gray-200 hover:glass hover:bg-gray-500/10 px-3 py-1 rounded-xl transition-all duration-300 border border-gray-400/20"
-                      >
-                        {isGeneratingTitle ? t('thinking') : t('suggestion')}
-                      </Button>
-                    )}
-                  </div>
+                  <Input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={t('titlePlaceholder')}
+                    variant="transparent"
+                    className="text-3xl font-bold px-0 py-2 rounded-xl border border-white/10 text-white/80 hover:glass hover:text-white/90 hover:font-medium hover:shadow-inner-lg hover:border-white/20 transition-all duration-300"
+                  />
                 </div>
                 <div className="flex items-center gap-3 text-sm text-gray-300 ml-4">
                   <div className="flex items-center gap-1">
@@ -964,19 +822,6 @@ export function DreamEditor() {
                       document.body
                     )}
                   </div>
-                  
-                  {/* AI Tag Generation Button */}
-                  {aiConfig.enabled && (
-                    <Button
-                      onClick={handleGenerateAITags}
-                      disabled={isGeneratingTags || !description.trim()}
-                      size="sm"
-                      variant="ghost"
-                      className="text-gray-300 hover:text-gray-200 hover:glass hover:bg-gray-500/10 px-3 py-1 rounded-xl transition-all duration-300 border border-gray-400/20"
-                    >
-                      {isGeneratingTags ? t('thinking') : t('suggestions')}
-                    </Button>
-                  )}
                 </div>
                 
                 {/* Tag Listing */}
@@ -1523,135 +1368,6 @@ export function DreamEditor() {
         </div>
       )}
 
-      {/* AI Tag Suggestion Modal */}
-      {showAITagModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9999] flex items-center justify-center p-4" onClick={() => setShowAITagModal(false)}>
-          <Card ref={aiTagModalRef} variant="glass" className="p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-white/70" />
-                <h3 className="text-xl font-semibold text-white">{t('categorySuggestions')}</h3>
-              </div>
-              <Button variant="ghost" onClick={handleCancelAITags} className="text-gray-300 hover:text-white">
-                <X className="w-5 h-5" />
-              </Button>
-            </div>
-            
-            {/* Add new tag input */}
-            <div className="mb-4">
-              <div className="flex gap-2">
-                <Input
-                  value={editingTag}
-                  onChange={(e) => setEditingTag(e.target.value)}
-                  placeholder={t('addNewTagPlaceholder')}
-                  onKeyPress={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      handleAddSuggestedTag();
-                    }
-                  }}
-                  className="flex-1 bg-white/5 border-white/20 text-white placeholder-gray-400"
-                />
-                <Button 
-                  onClick={handleAddSuggestedTag}
-                  disabled={!editingTag.trim()}
-                  size="sm"
-                  variant="ghost"
-                  className="text-white/60 hover:glass hover:text-white/90 px-3"
-                >
-                  {t('add')}
-                </Button>
-              </div>
-            </div>
-
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {suggestedTags.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">
-                  <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p>{t('noTagsSuggested')}</p>
-                  <p className="text-sm">{t('addTagsManually')}</p>
-                </div>
-              ) : (
-                suggestedTags.map((tag) => (
-                  <div key={tag.id} className="flex items-center justify-between bg-white/5 p-2 rounded border border-white/10">
-                    {editingId === tag.id ? (
-                      <div className="flex-1 flex items-center gap-2">
-                        <Input
-                          value={editingTag}
-                          onChange={(e) => setEditingTag(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSaveEditedTag();
-                            }
-                          }}
-                          className="bg-white/5 border-white/20 text-white placeholder-gray-400 focus:border-white/40 focus:ring-white/20"
-                        />
-                        <select
-                          value={editingCategory}
-                          onChange={(e) => setEditingCategory(e.target.value)}
-                          className="bg-transparent text-white/80 text-xs border border-white/10 rounded px-2 py-1"
-                        >
-                          <option value={UNCATEGORIZED_CATEGORY_ID} className="bg-gray-800">{t('uncategorized')}</option>
-                          {categories.map((category) => (
-                            <option key={category.id} value={category.id} className="bg-gray-800">
-                              {category.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    ) : (
-                      <TagPill
-                        tag={tag.label}
-                        size="sm"
-                        variant="gradient"
-                        color={getTagColor(tag.id) as any}
-                        tooltip={`${getCategoryName(tag.categoryId, categories, t('uncategorized'))} > ${tag.label}`}
-                      />
-                    )}
-                    <div className="flex items-center gap-1">
-                      {editingId === tag.id ? (
-                        <>
-                          <Button variant="ghost" onClick={handleSaveEditedTag} className="text-green-300 hover:text-green-200 p-1">
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" onClick={() => { setEditingId(''); setEditingTag(''); }} className="text-gray-300 hover:text-white p-1">
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button variant="ghost" onClick={() => handleEditSuggestedTag(tag)} className="text-gray-300 hover:text-white p-1">
-                            <Edit3 className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" onClick={() => handleRemoveSuggestedTag(tag.id)} className="text-red-300 hover:text-red-200 p-1">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-            
-            <div className="mt-6 flex justify-end gap-3 pt-4 border-t border-white/10">
-              <Button variant="ghost" onClick={handleCancelAITags} className="text-gray-300 hover:text-white">
-                {t('cancel')}
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={handleConfirmAITags} 
-                disabled={suggestedTags.length === 0}
-                className="text-white/60 hover:glass hover:text-white/90 hover:shadow-inner-lg hover:border-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {t('addTags', { count: suggestedTags.length })}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
-
       {/* Category Management Modal */}
       {showManageCategoriesModal && (
         <Modal
@@ -1720,46 +1436,6 @@ export function DreamEditor() {
         </Modal>
       )}
 
-      {/* Title Suggestion Modal */}
-      {showTitleSuggestion && (
-        <Modal
-          isOpen={showTitleSuggestion}
-          onClose={handleRejectTitleSuggestion}
-          title={t('aiTitleSuggestion')}
-          className="max-w-md"
-        >
-          <div className="space-y-4">
-            <div className="text-center">
-              <Sparkles className="w-8 h-8 mx-auto mb-3 text-blue-400" />
-              <p className="text-gray-300 mb-2">{t('aiSuggestsTitle')}</p>
-              <div className="bg-white/5 p-4 rounded-lg border border-white/10">
-                <h3 className="text-xl font-semibold text-white">{suggestedTitle}</h3>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-              <Button variant="ghost" onClick={handleRejectTitleSuggestion} className="text-gray-300 hover:text-white">
-                {t('reject')}
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={handleGenerateAITitle}
-                disabled={isGeneratingTitle}
-                className="text-blue-300 hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isGeneratingTitle ? t('thinking') : t('tryDifferentTitle')}
-              </Button>
-              <Button 
-                variant="ghost" 
-                onClick={handleAcceptTitleSuggestion}
-                className="text-white/60 hover:glass hover:text-white/90 hover:shadow-inner-lg hover:border-white/20"
-              >
-                {t('useThisTitle')}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </>
   );
 }

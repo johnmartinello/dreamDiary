@@ -1,9 +1,8 @@
 import { create } from 'zustand';
-import type { Dream, DreamStore, TagWithColor, GraphData, GraphFilters, Language } from '../types';
+import type { Dream, DreamStore, TagWithColor, GraphData, GraphFilters } from '../types';
 import type { CategoryColor, UserCategory } from '../types/taxonomy';
 import { getCategoryColor, UNCATEGORIZED_CATEGORY_ID } from '../types/taxonomy';
 import { storage } from '../utils/storage';
-import { AIService } from '../utils/aiService';
 import { generateId, getCurrentTimeString } from '../utils';
 
 // Resolve a category color from a tag id or a category id
@@ -26,7 +25,6 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   searchQuery: '',
   dateRange: { startDate: null, endDate: null },
   timeRange: { startTime: null, endTime: null },
-  aiConfig: storage.getAIConfig('gemini'),
   graphFilters: {
     dateRange: { startDate: null, endDate: null },
     selectedTags: [],
@@ -252,69 +250,6 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       storage.saveTrashedDreams(trashedDreams);
       return { categories, dreams, trashedDreams };
     });
-  },
-
-  updateAIConfig: (config) => {
-    set((state) => {
-      const updatedConfig = { ...state.aiConfig, ...config };
-      storage.saveAIConfig(updatedConfig);
-      return { aiConfig: updatedConfig };
-    });
-  },
-
-  setAIProvider: (provider: 'gemini' | 'lmstudio') => {
-    set((state) => {
-      const newConfig = storage.getAIConfig(provider);
-      // Preserve the current enabled state when switching providers
-      const updatedConfig = {
-        ...newConfig,
-        enabled: state.aiConfig.enabled
-      };
-      storage.saveAIConfig(updatedConfig);
-      return { aiConfig: updatedConfig };
-    });
-  },
-
-  generateAITags: async (dreamContent: string, language: Language = 'en', categoryId?: string) => {
-    const { aiConfig, categories } = get();
-    
-    if (!aiConfig.enabled) {
-      throw new Error('AI is disabled');
-    }
-
-    const result = await AIService.generateTags({
-      content: dreamContent,
-      config: aiConfig,
-      language,
-      categoryId,
-      categories,
-    });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result.tags;
-  },
-
-  generateAITitle: async (dreamContent: string, language: Language = 'en') => {
-    const { aiConfig } = get();
-    
-    if (!aiConfig.enabled) {
-      throw new Error('AI is disabled');
-    }
-
-    const result = await AIService.generateTitle({
-      content: dreamContent,
-      config: aiConfig,
-      language,
-    });
-
-    if (result.error) {
-      throw new Error(result.error);
-    }
-
-    return result.title;
   },
 
   getFilteredDreams: () => {

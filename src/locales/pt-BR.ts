@@ -51,59 +51,9 @@ export const ptBR = {
   searchOrCreateTag: 'Pesquisar tags existentes ou criar uma nova...',
   noTagsYet: 'Nenhuma tag ainda',
   tagsWillAppear: 'As tags aparecerão aqui conforme você as adicionar',
-  noNewTags: 'Nenhuma nova tag foi gerada',
-  noTitleGenerated: 'Nenhum título foi gerado',
-  pleaseAddContent: 'Por favor, adicione algum conteúdo do sonho primeiro',
-  
-  // AI Features
-  aiFeatures: 'Recursos de IA',
-  aiFeaturesDescription: 'Habilitar Recursos de IA',
-  enableAI: 'Habilitar Recursos de IA',
-  aiProvider: 'Provedor de IA',
-  chooseAI: 'Escolha seu serviço de IA',
-  gemini: 'Gemini',
-  geminiDescription: 'IA baseada em nuvem do Google',
-  lmStudio: 'LM Studio',
-  lmStudioDescription: 'Modelos de IA locais',
-  suggestions: 'Sugestões',
-  thinking: 'Pensando...',
-  suggestion: 'Sugestão',
-  
-  // AI Instructions
-  geminiInstructions: {
-    title: 'Google Gemini',
-    description: 'Use a IA Gemini do Google para geração automática de categorias',
-    steps: [
-      '1. Visite o Google AI Studio (https://aistudio.google.com/)',
-      '2. Faça login e clique em "Get API Key"',
-      '3. Copie sua chave de API e cole abaixo',
-      '4. Digite o nome do seu modelo preferido (ex: gemini-2.0-flash)'
-    ]
-  },
-  lmStudioInstructions: {
-    title: 'LM Studio',
-    description: 'Use modelos locais através do LM Studio para privacidade',
-    steps: [
-      '1. Baixe e instale o LM Studio',
-      '2. Carregue seu modelo preferido',
-      '3. Inicie o servidor local (geralmente roda em localhost:1234)',
-      '4. Digite a URL do endpoint de conclusão',
-      '5. Digite o nome do seu modelo conforme configurado no LM Studio'
-    ]
-  },
   
   // Configuration
   configurations: 'Configurações',
-  apiConfiguration: 'Configuração da API',
-  setupCredentials: 'Configure suas credenciais de API',
-  apiKey: 'Chave da API',
-  modelName: 'Nome do Modelo',
-  completionEndpoint: 'Endpoint de Conclusão',
-  enterGeminiKey: 'Digite sua chave de API do Gemini',
-  enterModelName: 'ex: gemini-2.0-flash',
-  enterEndpoint: 'ex: http://localhost:1234/v1/chat/completions',
-  enterLocalModel: 'ex: modelo-local',
-  saveConfiguration: 'Salvar Configuração',
   saving: 'Salvando...',
   
   // Data Management
@@ -207,35 +157,11 @@ export const ptBR = {
   previousYear: 'Ano anterior ({year})',
   nextYear: 'Próximo ano ({year})',
   
-  // AI Tag suggestions
-  categorySuggestions: 'Sugestões de Categorias',
-  addNewTag: 'Adicionar uma nova tag...',
-  addNewTagPlaceholder: 'Adicionar uma nova tag...',
-  noTagsSuggested: 'Nenhuma tag sugerida ainda',
-  addTagsManually: 'Adicione tags manualmente acima',
-  addTags: 'Adicionar {count} Tag{plural}',
-  
-  // AI Title suggestions
-  aiTitleSuggestion: 'Sugestão de Título do sistema',
-  aiSuggestsTitle: 'O sistema sugere este título para seu sonho:',
-  useThisTitle: 'Usar Este Título',
-  tryDifferentTitle: 'Tentar Título Diferente',
-  
   // Auto-save
   savingChanges: 'Salvando alterações...',
   allChangesSaved: 'Todas as alterações são salvas automaticamente',
   
   // Errors
-  aiDisabled: 'IA está desabilitada',
-  geminiRequiresKey: 'Gemini requer chave de API e nome do modelo',
-  lmStudioRequiresEndpoint: 'LM Studio requer endpoint e nome do modelo',
-  unsupportedProvider: 'Provedor de IA não suportado',
-  failedToGenerateTags: 'Falha ao gerar tags com IA',
-  failedToGenerateTitle: 'Falha ao gerar título com IA',
-  failedToConnectGemini: 'Falha ao conectar com a API do Gemini',
-  failedToConnectLMStudio: 'Falha ao conectar com a API do LM Studio',
-  noResponseFromAI: 'Nenhuma resposta da IA',
-  
   // Footer
   dreamsStoredLocally: 'Seus sonhos são armazenados localmente',
   
@@ -396,8 +322,6 @@ export const ptBR = {
   editDream: 'Editar sonho',
   addTag: 'Adicionar tag',
   removeTag: 'Remover tag',
-  generateTags: 'Gerar tags com IA',
-  generateTitle: 'Gerar título com IA',
   filterByDate: 'Filtrar por data',
   filterByTag: 'Filtrar por tag',
   settings: 'Configurações',

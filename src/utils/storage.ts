@@ -1,4 +1,4 @@
-import type { Dream, AIConfig, AIProvider, PasswordConfig } from '../types';
+import type { Dream, PasswordConfig } from '../types';
 import type { UserCategory, DreamTag } from '../types/taxonomy';
 import {
   buildTagId,
@@ -10,28 +10,10 @@ import {
 const DREAMS_STORAGE_KEY = 'dreams';
 const TRASHED_DREAMS_STORAGE_KEY = 'trashed_dreams';
 const CATEGORIES_STORAGE_KEY = 'categories';
-const AI_CONFIG_GEMINI_KEY = 'ai_config_gemini';
-const AI_CONFIG_LMSTUDIO_KEY = 'ai_config_lmstudio';
 const PASSWORD_CONFIG_KEY = 'password_config';
 const PASSWORD_HASH_KEY = 'password_hash';
 const FIRST_LAUNCH_KEY = 'first_launch';
 const MIGRATION_USER_CATEGORIES_KEY = 'migration_user_categories_applied_v1';
-
-const defaultGeminiConfig: AIConfig = {
-  enabled: false,
-  provider: 'gemini',
-  apiKey: '',
-  completionEndpoint: '',
-  modelName: 'gemini-2.0-flash',
-};
-
-const defaultLmStudioConfig: AIConfig = {
-  enabled: false,
-  provider: 'lmstudio',
-  apiKey: '',
-  completionEndpoint: 'http://localhost:1234/v1/chat/completions',
-  modelName: 'local-model',
-};
 
 const defaultPasswordConfig: PasswordConfig = {
   isEnabled: false,
@@ -309,50 +291,6 @@ const electronStorage = {
     }
   },
 
-  getAIConfig: (provider: AIProvider = 'gemini'): AIConfig => {
-    try {
-      if (isElectron() && (window as any).require) {
-        const fs = (window as any).require('fs');
-        const path = (window as any).require('path');
-        const dataPath = getElectronDataPath();
-        if (dataPath) {
-          const configPath = path.join(dataPath, `ai_config_${provider}.json`);
-          if (fs.existsSync(configPath)) {
-            const data = fs.readFileSync(configPath, 'utf8');
-            return JSON.parse(data);
-          }
-        }
-      }
-      return provider === 'gemini' ? defaultGeminiConfig : defaultLmStudioConfig;
-    } catch (error) {
-      console.error('Error loading AI config from Electron storage:', error);
-      return provider === 'gemini' ? defaultGeminiConfig : defaultLmStudioConfig;
-    }
-  },
-
-  saveAIConfig: (config: AIConfig): void => {
-    try {
-      if (isElectron() && (window as any).require) {
-        const fs = (window as any).require('fs');
-        const path = (window as any).require('path');
-        const dataPath = getElectronDataPath();
-        if (dataPath) {
-          const configPath = path.join(dataPath, `ai_config_${config.provider}.json`);
-          fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
-        }
-      }
-    } catch (error) {
-      console.error('Error saving AI config to Electron storage:', error);
-    }
-  },
-
-  getAllAIConfigs: (): Record<AIProvider, AIConfig> => {
-    return {
-      gemini: electronStorage.getAIConfig('gemini'),
-      lmstudio: electronStorage.getAIConfig('lmstudio'),
-    };
-  },
-
   // Password storage methods
   getPasswordConfig: (): PasswordConfig => {
     try {
@@ -540,34 +478,6 @@ const browserStorage = {
     } catch (error) {
       console.error('Error saving categories to storage:', error);
     }
-  },
-
-  getAIConfig: (provider: AIProvider = 'gemini'): AIConfig => {
-    try {
-      const key = provider === 'gemini' ? AI_CONFIG_GEMINI_KEY : AI_CONFIG_LMSTUDIO_KEY;
-      const defaultConfig = provider === 'gemini' ? defaultGeminiConfig : defaultLmStudioConfig;
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : defaultConfig;
-    } catch (error) {
-      console.error('Error loading AI config from storage:', error);
-      return provider === 'gemini' ? defaultGeminiConfig : defaultLmStudioConfig;
-    }
-  },
-
-  saveAIConfig: (config: AIConfig): void => {
-    try {
-      const key = config.provider === 'gemini' ? AI_CONFIG_GEMINI_KEY : AI_CONFIG_LMSTUDIO_KEY;
-      localStorage.setItem(key, JSON.stringify(config));
-    } catch (error) {
-      console.error('Error saving AI config to storage:', error);
-    }
-  },
-
-  getAllAIConfigs: (): Record<AIProvider, AIConfig> => {
-    return {
-      gemini: browserStorage.getAIConfig('gemini'),
-      lmstudio: browserStorage.getAIConfig('lmstudio'),
-    };
   },
 
   // Password storage methods

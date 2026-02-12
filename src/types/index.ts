@@ -29,16 +29,7 @@ export interface TagWithColor {
 
 export type ViewType = 'home' | 'dream' | 'graph' | 'insights';
 
-export type AIProvider = 'gemini' | 'lmstudio';
 export type Language = 'en' | 'pt-BR';
-
-export interface AIConfig {
-  enabled: boolean;
-  provider: AIProvider;
-  apiKey: string;
-  completionEndpoint: string;
-  modelName: string;
-}
 
 // Graph-related types
 export interface GraphNode {
@@ -105,7 +96,6 @@ export interface DreamStore {
   searchQuery: string;
   dateRange: { startDate: string | null; endDate: string | null };
   timeRange: { startTime: string | null; endTime: string | null };
-  aiConfig: AIConfig;
   graphFilters: GraphFilters;
   
   // Actions
@@ -130,14 +120,6 @@ export interface DreamStore {
   addCategory: (category: Omit<UserCategory, 'id' | 'createdAt' | 'updatedAt'>) => UserCategory;
   updateCategory: (id: string, updates: Partial<Pick<UserCategory, 'name' | 'color'>>) => void;
   deleteCategory: (id: string) => void;
-  updateAIConfig: (config: Partial<AIConfig>) => void;
-  setAIProvider: (provider: AIProvider) => void;
-  generateAITags: (
-    dreamContent: string,
-    language?: Language,
-    categoryId?: string
-  ) => Promise<DreamTag[]>;
-  generateAITitle: (dreamContent: string, language?: Language) => Promise<string>;
   
   // Citation methods
   addCitation: (dreamId: string, citedDreamId: string) => void;

@@ -34,7 +34,7 @@ If you prefer to build the application yourself, see the [Installation](#install
 
 ### Core Functionality
 - **Dream Journaling**: Create, edit, and organize your dreams with rich text descriptions
-- **Advanced Tag System**: Hierarchical categorization with AI-powered theme detection (if wanted)
+- **Advanced Tag System**: Hierarchical categorization for dream themes
 - **Date Filtering**: Advanced date range filtering with custom calendar interface
 - **Search**: Full-text search across dream titles, descriptions, and tags with real-time results
 - **Auto-save**: Automatic saving of dream entries as you type
@@ -42,7 +42,6 @@ If you prefer to build the application yourself, see the [Installation](#install
 
 ### Hierarchical Tag System ✨
 - **Organized Categories**: Dreams are categorized into logical hierarchies (Emotions, Characters, Actions, Places, etc.)
-- **Smart Tag Suggestions**: Context-aware tag recommendations based on dream content
 - **Pattern Recognition**: Discover connections between different dream themes over time
 - **Custom Categories**: Create your own tag categories and hierarchies
 - **Tag Relationships**: See how different tags relate to each other across your dreams
@@ -62,20 +61,10 @@ If you prefer to build the application yourself, see the [Installation](#install
 - **Multiple Layouts**: Choose between force-directed, hierarchical, and circular layouts
 - **Visual Customization**: Node colors based on tag categories, sizes based on citation count
 
-### AI Integration
-- **Smart Tag Suggestions**: AI-powered dream categorization using Gemini or LM Studio
-- **AI Title Suggestions**: Generate evocative titles for your dreams based on their content
-- **Theme Analysis**: Automatic detection of emotional tones, recurring elements, and dream types
-- **Pattern Recognition**: Identify connections and patterns across your dream journal
-- **Configurable AI Providers**: Support for multiple AI backends with easy switching
-- **Local Processing**: Option to use local AI models for complete privacy
-- **Multi-language Support**: AI analysis in English and Portuguese (Brazilian)
-
 ### Security & Privacy
 - **Password Protection**: Optional password protection with auto-lock features
 - **Local Storage**: All data stored locally on your device
-- **Privacy-First**: No data sent to external servers unless explicitly configured
-- **Secure AI**: Option to use local AI models for complete privacy
+- **Privacy-First**: No data sent to external servers
 
 ### User Experience
 - **Glass Morphism UI**: Beautiful, modern interface with glass-like effects
@@ -93,7 +82,6 @@ If you prefer to build the application yourself, see the [Installation](#install
 - **Graph Visualization**: react-force-graph-2d
 - **Animations**: Framer Motion
 - **Icons**: Lucide React
-- **AI Integration**: Custom service layer supporting LM Studio and Gemini
 - **Desktop App**: Electron for cross-platform desktop application
 
 ## Getting Started
@@ -175,7 +163,6 @@ To test the application in your web browser:
    - Create, edit, and delete dream entries
    - Test the search and filtering functionality
    - Try the citation system and dream graph visualization
-   - Test AI features (if configured)
 
 ### Electron Desktop App Testing
 
@@ -214,7 +201,6 @@ To launch DreamWeave as a separate desktop application:
 - **Hot Module Replacement**: Changes to React components will automatically update in the browser/Electron window
 - **Console Logs**: Check the browser DevTools (F12) or Electron DevTools for debugging information
 - **Data Persistence**: Test data is stored locally in your browser's IndexedDB (web) or Electron's user data directory
-- **AI Configuration**: Make sure to configure AI settings in the app if you want to test AI-powered features
 - **Port Conflicts**: If port 5173 is already in use, Vite will automatically use the next available port
 
 ### Troubleshooting
