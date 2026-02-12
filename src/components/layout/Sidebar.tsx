@@ -157,7 +157,9 @@ export function Sidebar() {
                   const isSelected = selectedTag === `category:${categoryId}`;
                   return (
                     <div key={categoryId}>
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         className={cn(
                           'w-full text-left px-3 py-2 rounded-lg text-xs transition-all duration-300 ease-out relative overflow-hidden group cursor-pointer flex items-center justify-between',
                           isSelected ? 'glass text-white/90 font-medium border border-white/20' : 'text-white/70 hover:glass hover:text-white/90 hover:border-white/20'
@@ -165,6 +167,13 @@ export function Sidebar() {
                         onClick={() => {
                           if (selectedTag === `category:${categoryId}`) setSelectedTag(null);
                           else setSelectedTag(`category:${categoryId}`);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            if (selectedTag === `category:${categoryId}`) setSelectedTag(null);
+                            else setSelectedTag(`category:${categoryId}`);
+                          }
                         }}
                       >
                         <div className="flex items-center gap-2">
@@ -184,7 +193,7 @@ export function Sidebar() {
                           />
                         </div>
                         <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{group.items.reduce((sum, item) => sum + item.count, 0)}</span>
-                      </button>
+                      </div>
                       {isOpen && (
                         <div className="pl-6 mt-1 space-y-1">
                           {group.items.map((tag) => (

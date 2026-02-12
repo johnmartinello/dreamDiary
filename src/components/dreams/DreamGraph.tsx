@@ -52,6 +52,7 @@ export function DreamGraph() {
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const graphRef = useRef<any>(null);
   const filtersPanelRef = useRef<HTMLDivElement>(null);
+  const searchPanelRef = useRef<HTMLDivElement>(null);
   
   // Get window size for responsive design
   const { width: windowWidth, height: windowHeight } = useWindowSize();
@@ -220,6 +221,19 @@ export function DreamGraph() {
     setSelectedIndex(-1);
   }, [searchQuery]);
 
+  useEffect(() => {
+    if (!filteredDreams.length) return;
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!searchPanelRef.current) return;
+      if (!searchPanelRef.current.contains(event.target as Node)) {
+        setSearchQuery('');
+        setSelectedIndex(-1);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [filteredDreams.length]);
+
   // Handle keyboard navigation
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!filteredDreams.length) return;
@@ -280,7 +294,7 @@ export function DreamGraph() {
   }, [showFilters]);
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
       {/* Top Navigation Bar */}
       <div className="sticky top-0 z-20">
         <div className="max-w-6xl mx-auto px-6 py-4">
@@ -317,7 +331,7 @@ export function DreamGraph() {
                 <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   {t('categories')}
                 </label>
-                <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+                <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto">
                   {[{ id: UNCATEGORIZED_CATEGORY_ID, name: t('uncategorized'), color: 'violet' as const }, ...categories].map((meta: any) => (
                     <button
                       key={meta.id}
@@ -351,7 +365,7 @@ export function DreamGraph() {
               </div>
 
               {/* Search Dreams */}
-              <div className="space-y-2 relative">
+              <div ref={searchPanelRef} className="space-y-2 relative">
                 <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
                   <Search className="w-4 h-4" />
                   {t('searchDreams')}

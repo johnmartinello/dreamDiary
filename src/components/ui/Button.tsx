@@ -37,7 +37,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {(variant === 'primary' || variant === 'gradient') && (
           <div className="absolute inset-0 bg-gradient-shimmer bg-shimmer opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         )}
-        <span className="relative z-10">{props.children}</span>
+        <div className="relative z-10 flex items-center gap-2">{props.children}</div>
       </button>
     );
   }

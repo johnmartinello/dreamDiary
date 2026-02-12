@@ -43,6 +43,12 @@ export function Modal({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName.toLowerCase();
+        const insideNativeSelect = tagName === 'select' || tagName === 'option' || Boolean(target.closest('select'));
+        if (insideNativeSelect) return;
+      }
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         onClose();
       }

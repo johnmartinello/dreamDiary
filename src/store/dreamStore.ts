@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Dream, DreamStore, TagWithColor, GraphData, GraphFilters, Language } from '../types';
 import type { CategoryColor, UserCategory } from '../types/taxonomy';
-import { getCategoryColor, UNCATEGORIZED_CATEGORY_ID, buildTagId } from '../types/taxonomy';
+import { getCategoryColor, UNCATEGORIZED_CATEGORY_ID } from '../types/taxonomy';
 import { storage } from '../utils/storage';
 import { AIService } from '../utils/aiService';
 import { generateId } from '../utils';
@@ -231,19 +231,11 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       const categories = state.categories.filter((category) => category.id !== id);
       const dreams = state.dreams.map((dream) => ({
         ...dream,
-        tags: dream.tags.map((tag) =>
-          tag.categoryId === id
-            ? { ...tag, categoryId: UNCATEGORIZED_CATEGORY_ID, id: buildTagId(UNCATEGORIZED_CATEGORY_ID, tag.label) }
-            : tag
-        ),
+        tags: dream.tags.filter((tag) => tag.categoryId !== id),
       }));
       const trashedDreams = state.trashedDreams.map((dream) => ({
         ...dream,
-        tags: dream.tags.map((tag) =>
-          tag.categoryId === id
-            ? { ...tag, categoryId: UNCATEGORIZED_CATEGORY_ID, id: buildTagId(UNCATEGORIZED_CATEGORY_ID, tag.label) }
-            : tag
-        ),
+        tags: dream.tags.filter((tag) => tag.categoryId !== id),
       }));
       storage.saveCategories(categories);
       storage.saveDreams(dreams);

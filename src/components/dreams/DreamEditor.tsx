@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowLeft, Calendar, Trash2, Edit3, AlertTriangle, Sparkles, X, Check, Link, Search } from 'lucide-react';
 import { useDreamStore } from '../../store/dreamStore';
 import { useI18n } from '../../hooks/useI18n';
@@ -49,6 +50,8 @@ export function DreamEditor() {
   const [newTag, setNewTag] = useState('');
   const [newTagCategory, setNewTagCategory] = useState<string>(UNCATEGORIZED_CATEGORY_ID);
   const [showTagAutocomplete, setShowTagAutocomplete] = useState(false);
+  const [tagAutocompleteIndex, setTagAutocompleteIndex] = useState(0);
+  const [tagAutocompletePosition, setTagAutocompletePosition] = useState({ top: 0, left: 0, width: 0 });
   const [showCreateCategoryInline, setShowCreateCategoryInline] = useState(false);
   const [newCategoryNameInline, setNewCategoryNameInline] = useState('');
   const [newCategoryColorInline, setNewCategoryColorInline] = useState<'cyan' | 'purple' | 'pink' | 'emerald' | 'amber' | 'blue' | 'indigo' | 'violet' | 'rose' | 'teal' | 'lime' | 'orange' | 'red' | 'green' | 'yellow'>('violet');
@@ -87,12 +90,14 @@ export function DreamEditor() {
 
   // Inline mention ("@") state
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const editorWrapperRef = useRef<HTMLDivElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
+  const tagAutocompleteRef = useRef<HTMLDivElement>(null);
+  const mentionDropdownRef = useRef<HTMLDivElement>(null);
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionQuery, setMentionQuery] = useState('');
   const [mentionStart, setMentionStart] = useState<number | null>(null);
   const [mentionSelectedIndex, setMentionSelectedIndex] = useState(0);
-  const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
+  const [mentionPosition, setMentionPosition] = useState<{ top: number; left: number; width: number }>({ top: 0, left: 0, width: 240 });
 
   // Modal refs (no longer using useClickOutside)
   const deleteModalRef = useRef<HTMLDivElement>(null);
@@ -154,6 +159,71 @@ export function DreamEditor() {
   const canCreateTypedTag = newTag.trim().length > 0 && !matchingKnownTags.some(
     (tag) => tag.label.toLowerCase() === newTag.trim().toLowerCase()
   );
+
+  useEffect(() => {
+    setTagAutocompleteIndex(0);
+  }, [newTag, showTagAutocomplete]);
+
+  const updateTagAutocompletePosition = () => {
+    const input = tagInputRef.current;
+    if (!input) return;
+    const rect = input.getBoundingClientRect();
+    setTagAutocompletePosition({
+      top: rect.bottom + 6,
+      left: rect.left,
+      width: rect.width,
+    });
+  };
+
+  useEffect(() => {
+    if (!showTagAutocomplete) return;
+    updateTagAutocompletePosition();
+
+    const handleReposition = () => updateTagAutocompletePosition();
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [showTagAutocomplete]);
+
+  useEffect(() => {
+    if (!showTagAutocomplete && !mentionOpen) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      const tagInput = tagInputRef.current;
+      const tagDropdown = tagAutocompleteRef.current;
+      const mentionDropdown = mentionDropdownRef.current;
+      const textarea = textareaRef.current;
+
+      const clickedInsideTag = Boolean(
+        (tagInput && tagInput.contains(target)) || (tagDropdown && tagDropdown.contains(target))
+      );
+      const clickedInsideMention = Boolean(
+        (textarea && textarea.contains(target)) || (mentionDropdown && mentionDropdown.contains(target))
+      );
+
+      if (!clickedInsideTag) setShowTagAutocomplete(false);
+      if (!clickedInsideMention) setMentionOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showTagAutocomplete, mentionOpen]);
+
+  useEffect(() => {
+    if (!mentionOpen) return;
+    const handleReposition = () => updateMentionDropdownPosition();
+    window.addEventListener('resize', handleReposition);
+    window.addEventListener('scroll', handleReposition, true);
+    return () => {
+      window.removeEventListener('resize', handleReposition);
+      window.removeEventListener('scroll', handleReposition, true);
+    };
+  }, [mentionOpen]);
 
   // Auto-save effect - only runs after initialization and when values actually change
   useEffect(() => {
@@ -223,13 +293,32 @@ export function DreamEditor() {
     setTags(tags.filter((tag) => tag.id !== tagToRemove));
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const canSelectExisting = showTagAutocomplete && matchingKnownTags.length > 0;
+
+    if (e.key === 'ArrowDown' && canSelectExisting) {
+      e.preventDefault();
+      setTagAutocompleteIndex((prev) => Math.min(prev + 1, matchingKnownTags.length - 1));
+      return;
+    }
+
+    if (e.key === 'ArrowUp' && canSelectExisting) {
+      e.preventDefault();
+      setTagAutocompleteIndex((prev) => Math.max(prev - 1, 0));
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      setShowTagAutocomplete(false);
+      return;
+    }
+
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (matchingKnownTags.length > 0 && showTagAutocomplete) {
-        const first = matchingKnownTags[0];
-        const categoryId = first.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID;
-        handleAddTag(first.label, categoryId);
+      if (canSelectExisting) {
+        const selected = matchingKnownTags[Math.max(0, Math.min(tagAutocompleteIndex, matchingKnownTags.length - 1))];
+        const categoryId = selected.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID;
+        handleAddTag(selected.label, categoryId);
       } else {
         handleAddTag();
       }
@@ -451,8 +540,7 @@ export function DreamEditor() {
 
   const updateMentionDropdownPosition = () => {
     const ta = textareaRef.current;
-    const wrapper = editorWrapperRef.current;
-    if (!ta || !wrapper) return;
+    if (!ta) return;
     const caretIndex = ta.selectionStart || 0;
 
     // Create mirror element to measure caret position
@@ -467,8 +555,8 @@ export function DreamEditor() {
       div.style[prop] = style.getPropertyValue(prop);
     });
     div.style.position = 'absolute';
-    div.style.top = `${ta.offsetTop}px`;
-    div.style.left = `${ta.offsetLeft}px`;
+    div.style.top = '0px';
+    div.style.left = '0px';
     div.style.whiteSpace = 'pre-wrap';
     div.style.visibility = 'hidden';
     div.style.wordWrap = 'break-word';
@@ -485,18 +573,18 @@ export function DreamEditor() {
     div.appendChild(pre);
     div.appendChild(span);
 
-    wrapper.appendChild(div);
-    const wrapperRect = wrapper.getBoundingClientRect();
+    document.body.appendChild(div);
+    const textareaRect = ta.getBoundingClientRect();
     const spanRect = span.getBoundingClientRect();
 
-    const caretTop = spanRect.top - wrapperRect.top - ta.scrollTop;
-    const caretLeft = spanRect.left - wrapperRect.left - ta.scrollLeft;
+    const caretTop = spanRect.top - ta.scrollTop;
+    const caretLeft = spanRect.left - ta.scrollLeft;
 
-    const left = Math.max(0, Math.min(caretLeft, ta.clientWidth - 240));
-    const top = Math.max(0, Math.min(caretTop, ta.clientHeight - 40)) + 24;
+    const left = Math.max(12, Math.min(textareaRect.left + caretLeft, window.innerWidth - 260));
+    const top = Math.max(12, Math.min(textareaRect.top + caretTop + 24, window.innerHeight - 64));
 
-    setMentionPosition({ top, left });
-    wrapper.removeChild(div);
+    setMentionPosition({ top, left, width: 240 });
+    document.body.removeChild(div);
   };
 
   const insertMention = (d: { id: string; title: string }) => {
@@ -742,31 +830,48 @@ export function DreamEditor() {
                 <div className="flex items-start gap-3">
                   <div className="relative flex-1">
                     <Input
+                      ref={tagInputRef}
                       value={newTag}
                       onChange={(e) => {
                         setNewTag(e.target.value);
                         setShowTagAutocomplete(true);
+                        requestAnimationFrame(() => updateTagAutocompletePosition());
                       }}
-                      onFocus={() => setShowTagAutocomplete(true)}
-                      onBlur={() => setTimeout(() => setShowTagAutocomplete(false), 150)}
-                      onKeyPress={handleKeyPress}
+                      onFocus={() => {
+                        setShowTagAutocomplete(true);
+                        requestAnimationFrame(() => updateTagAutocompletePosition());
+                      }}
+                      onKeyDown={handleTagInputKeyDown}
                       placeholder={t('searchOrCreateTag')}
                       variant="transparent"
                       className="w-full border-b border-white/20 focus:border-gray-400 px-0 py-1 text-sm"
                     />
-                    {showTagAutocomplete && newTag.trim() && (
-                      <div className="absolute z-20 mt-1 w-full max-h-56 overflow-auto bg-black/70 border border-white/10 rounded-lg p-2 space-y-1">
+                    {showTagAutocomplete && newTag.trim() && createPortal(
+                      <div
+                        ref={tagAutocompleteRef}
+                        className="fixed z-[10000] max-h-56 overflow-auto bg-black/90 border border-white/10 rounded-lg p-2 space-y-1 shadow-2xl"
+                        style={{
+                          top: tagAutocompletePosition.top,
+                          left: tagAutocompletePosition.left,
+                          width: tagAutocompletePosition.width,
+                        }}
+                      >
                         {matchingKnownTags.map((knownTag) => {
                           const categoryId = knownTag.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID;
                           const categoryName = getCategoryName(categoryId, categories, t('uncategorized'));
+                          const itemIndex = matchingKnownTags.findIndex((item) => item.id === knownTag.id);
                           return (
                             <button
                               key={knownTag.id}
-                              className="w-full text-left px-2 py-1 rounded hover:bg-white/10 text-sm text-white/90 flex items-center justify-between"
+                              className={cn(
+                                'w-full text-left px-2 py-1 rounded text-sm text-white/90 flex items-center justify-between',
+                                tagAutocompleteIndex === itemIndex ? 'bg-white/15' : 'hover:bg-white/10'
+                              )}
                               onMouseDown={(e) => {
                                 e.preventDefault();
                                 handleAddTag(knownTag.label, categoryId);
                               }}
+                              onMouseEnter={() => setTagAutocompleteIndex(itemIndex)}
                             >
                               <span>{knownTag.label}</span>
                               <span className="text-xs text-white/50">{categoryName}</span>
@@ -784,7 +889,8 @@ export function DreamEditor() {
                             {t('newTag')}: "{newTag.trim()}"
                           </button>
                         )}
-                      </div>
+                      </div>,
+                      document.body
                     )}
                   </div>
                   
@@ -825,7 +931,7 @@ export function DreamEditor() {
 
           {/* Enhanced Description Section */}
           <Card variant="glass" className="p-8 shadow-depth-3">
-            <div ref={editorWrapperRef} className="relative">
+            <div className="relative">
               <Textarea
                 ref={textareaRef}
                 value={description}
@@ -907,10 +1013,11 @@ export function DreamEditor() {
                 style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
               />
 
-              {mentionOpen && (
+              {mentionOpen && createPortal(
                 <div
-                  className="absolute z-20 w-60 max-h-56 overflow-y-auto bg-black/60 backdrop-blur rounded-lg border border-white/10 shadow-lg"
-                  style={{ top: mentionPosition.top, left: mentionPosition.left }}
+                  ref={mentionDropdownRef}
+                  className="fixed z-[10000] max-h-56 overflow-y-auto bg-black/90 backdrop-blur rounded-lg border border-white/10 shadow-2xl"
+                  style={{ top: mentionPosition.top, left: mentionPosition.left, width: mentionPosition.width }}
                 >
                   {getFilteredMentionDreams().length === 0 ? (
                     <div className="px-3 py-2 text-sm text-gray-400">{t('noResults')}</div>
@@ -933,7 +1040,8 @@ export function DreamEditor() {
                       </div>
                     ))
                   )}
-                </div>
+                </div>,
+                document.body
               )}
             </div>
           </Card>

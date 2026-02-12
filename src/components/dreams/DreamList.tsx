@@ -141,7 +141,7 @@ export function DreamList() {
             animate="visible"
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
           >
-            {dreams
+            {[...dreams]
               .sort((a, b) => compareDates(a.date, b.date))
               .map((dream) => (
                 <motion.div 
@@ -202,12 +202,9 @@ export function DreamList() {
 
                       {/* Enhanced Hover indicator */}
                       <div className="pt-3 border-t border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 mt-auto">
-                        <div className="flex items-center justify-between">
-                                                                        <div className="flex items-center text-xs text-gray-400">
-                        <Clock className="w-3 h-3 mr-2 text-gray-500" />
-                        {t('clickToViewDetails')}
-                      </div>
-                          
+                        <div className="flex items-center text-xs text-gray-400">
+                          <Clock className="w-3 h-3 mr-2 text-gray-500" />
+                          {t('clickToViewDetails')}
                         </div>
                       </div>
                     </div>

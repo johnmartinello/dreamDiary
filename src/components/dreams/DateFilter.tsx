@@ -50,6 +50,17 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
     }
   }, [showDateMenu, tempStartDate, tempEndDate]);
 
+  useEffect(() => {
+    if (!showDateMenu) return;
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowDateMenu(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [showDateMenu]);
+
   // Custom date picker helpers
   const getDaysInMonth = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -183,25 +194,32 @@ export function DateFilter({ onDateRangeChange, startDate, endDate }: DateFilter
 
   return (
     <div className="relative">
-      <Button
-        variant="ghost"
-        onClick={() => setShowDateMenu(!showDateMenu)}
-        className="text-gray-300 hover:text-gray-200 px-3 py-2 border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300 flex items-center gap-2"
-      >
-        <Calendar className="w-4 h-4 text-gray-400" />
-        <span className="text-sm">{getDisplayText()}</span>
+      <div className="relative inline-flex">
+        <Button
+          variant="ghost"
+          onClick={() => setShowDateMenu(!showDateMenu)}
+          className={cn(
+            "text-gray-300 hover:text-gray-200 px-3 py-2 border border-white/10 hover:border-white/20 bg-white/5 hover:bg-white/10 transition-all duration-300 flex items-center gap-2",
+            (startDate || endDate) && "pr-8"
+          )}
+        >
+          <Calendar className="w-4 h-4 text-gray-400" />
+          <span className="text-sm">{getDisplayText()}</span>
+        </Button>
         {(startDate || endDate) && (
           <button
+            type="button"
+            aria-label="Clear date filter"
             onClick={(e) => {
               e.stopPropagation();
               handleClearFilter();
             }}
-            className="ml-2 text-gray-400 hover:text-white transition-colors"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
           >
             <X className="w-3 h-3" />
           </button>
         )}
-      </Button>
+      </div>
 
       {/* Date Modal */}
       {showDateMenu && (
