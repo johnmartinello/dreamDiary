@@ -731,7 +731,7 @@ export function DreamEditor() {
                       <select
                         value={newTagCategory}
                         onChange={(e) => setNewTagCategory(e.target.value)}
-                        className="appearance-none bg-black/40 hover:bg-black/55 text-gray-100 text-sm border border-white/15 rounded-xl pl-3 pr-8 py-1.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400/35 focus:border-purple-300/35 shadow-[0_6px_16px_rgba(0,0,0,0.25)] [&>option]:bg-gray-900"
+                        className="appearance-none h-8 rounded-xl border border-gray-400/30 bg-transparent pl-3 pr-8 text-sm text-gray-200 transition-all duration-300 ease-out hover:text-white hover:bg-white/5 hover:glass hover:border-gray-300/50 focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 [&>option]:bg-gray-900"
                       >
                         <option value={UNCATEGORIZED_CATEGORY_ID}>{t('uncategorized')}</option>
                         {categories.map((category) => (
@@ -745,7 +745,7 @@ export function DreamEditor() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-xs text-gray-200 bg-black/35 border border-white/15 hover:text-white hover:bg-white/10 hover:border-white/25"
+                      className="text-xs text-gray-200 hover:text-white"
                       onClick={() => setShowManageCategoriesModal(true)}
                     >
                       {t('manageCategories')}
