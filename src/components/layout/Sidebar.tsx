@@ -204,18 +204,21 @@ export function Sidebar() {
                         <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{group.items.reduce((sum, item) => sum + item.count, 0)}</span>
                       </div>
                       {isOpen && (
-                        <div className="pl-6 mt-1 space-y-1">
+                        <div className="ml-8 mt-1 space-y-1 border-l border-white/10 pl-3">
                           {group.items.map((tag) => (
                             <button
                               key={tag.id}
                               onClick={() => handleTagClick(tag.id)}
                               className={cn(
-                                'w-full text-left px-3 py-2 rounded-lg text-xs transition-all duration-300 ease-out relative overflow-hidden group cursor-pointer flex items-center justify-between',
+                                'w-full text-left px-2.5 py-1.5 rounded-lg text-xs transition-all duration-300 ease-out relative overflow-hidden group cursor-pointer flex items-center justify-between',
                                 selectedTag === tag.id ? 'glass text-white/90 font-medium border border-white/20' : 'text-white/70 hover:glass hover:text-white/90 hover:border-white/20'
                               )}
                               title={tag.label}
                             >
-                              <TagPill tag={tag.label} size="sm" variant="gradient" color={tag.color} />
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span aria-hidden className="text-white/35 text-[10px]">-</span>
+                                <TagPill tag={tag.label} size="sm" variant="gradient" color={tag.color} />
+                              </div>
                               <span className="text-[10px] px-2 py-1 rounded-full bg-white/5 border border-white/10">{tag.count}</span>
                             </button>
                           ))}
