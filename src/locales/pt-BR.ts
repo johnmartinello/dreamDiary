@@ -276,6 +276,9 @@ export const ptBR = {
   tagAnalysisDescription: 'Mergulhe fundo nos relacionamentos e padrões das tags',
   mostUsedTags: 'Tags Mais Usadas',
   mostCitedTag: 'Tag Mais Citada',
+  totalRelations: 'Total de relações',
+  showAllRelations: 'Mostrar todas',
+  showLessRelations: 'Mostrar menos',
   
   // Layout
   layout: 'Layout',

@@ -277,6 +277,9 @@ export const en = {
   tagAnalysisDescription: 'Deep dive into tag relationships and patterns',
   mostUsedTags: 'Most Used Tags',
   mostCitedTag: 'Most Cited Tag',
+  totalRelations: 'Total relations',
+  showAllRelations: 'Show all',
+  showLessRelations: 'Show less',
   
   // Layout
   layout: 'Layout',

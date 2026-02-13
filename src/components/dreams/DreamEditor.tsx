@@ -693,6 +693,12 @@ export function DreamEditor() {
     if (item.kind === 'tag' && !citedTags.includes(item.id)) {
       setCitedTags([...citedTags, item.id]);
     }
+    if (item.kind === 'tag') {
+      const knownTag = allKnownTags.find((tag) => tag.id === item.id);
+      const categoryId = knownTag?.categoryId || item.id.split('/')[0] || UNCATEGORIZED_CATEGORY_ID;
+      const tagToAttach: DreamTag = knownTag || { id: item.id, label: item.label, categoryId };
+      setTags((prev) => (prev.some((tag) => tag.id === item.id) ? prev : [...prev, tagToAttach]));
+    }
     closeMentionDropdown();
   };
 

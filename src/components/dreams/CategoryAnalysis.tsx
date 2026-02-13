@@ -21,15 +21,22 @@ interface TagStats {
   isCustom: boolean;
 }
 
-interface TagRelationship {
-  source: string;
-  target: string;
-  sourceLabel: string;
-  targetLabel: string;
-  sourceCategory: string;
-  targetCategory: string;
-  strength: number;
+interface RelationshipTarget {
+  id: string;
+  label: string;
+  categoryId: string;
+  categoryLabel: string;
   count: number;
+  strength: number;
+}
+
+interface RelationshipGroup {
+  sourceId: string;
+  sourceLabel: string;
+  sourceCategoryId: string;
+  sourceCategoryLabel: string;
+  sourceUsage: number;
+  relatedTargets: RelationshipTarget[];
 }
 
 interface CategoryTagSummary {
@@ -49,6 +56,7 @@ export function CategoryAnalysis() {
   const [activeTab, setActiveTab] = useState<'overview' | 'tags' | 'relationships' | 'categories' | 'trends'>('overview');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [textFilter, setTextFilter] = useState('');
+  const [expandedRelationshipGroups, setExpandedRelationshipGroups] = useState<Set<string>>(new Set());
 
   const getCategoryDisplayName = (categoryId: string): string => {
     if (!categoryId || categoryId === UNCATEGORIZED_CATEGORY_ID) {
@@ -103,33 +111,45 @@ export function CategoryAnalysis() {
     return Object.values(stats).sort((a, b) => b.count - a.count);
   }, [categories, dreams, t]);
 
-  const tagRelationships = useMemo(() => {
-    const relationships: TagRelationship[] = [];
-    const seen = new Set<string>();
+  const relationshipGroups = useMemo(() => {
+    const statsById = new Map(tagStats.map((tag) => [tag.id, tag]));
 
-    tagStats.forEach((left) => {
-      tagStats.forEach((right) => {
-        if (left.id === right.id) return;
-        const pairKey = [left.id, right.id].sort().join(':');
-        if (seen.has(pairKey)) return;
-        seen.add(pairKey);
-        const count = left.coOccurrences[right.id] || 0;
-        if (count > 0) {
-          relationships.push({
-            source: left.id,
-            target: right.id,
-            sourceLabel: left.label,
-            targetLabel: right.label,
-            sourceCategory: left.categoryId,
-            targetCategory: right.categoryId,
-            strength: count / Math.min(left.count, right.count),
+    const groups: RelationshipGroup[] = tagStats.map((source) => {
+      const relatedTargets = Object.entries(source.coOccurrences)
+        .map(([targetId, count]) => {
+          const target = statsById.get(targetId);
+          if (!target || count <= 0) return null;
+          return {
+            id: target.id,
+            label: target.label,
+            categoryId: target.categoryId,
+            categoryLabel: target.categoryLabel,
             count,
-          });
-        }
-      });
+            strength: count / Math.min(source.count, target.count),
+          } as RelationshipTarget;
+        })
+        .filter((target): target is RelationshipTarget => target !== null)
+        .sort((a, b) => b.count - a.count || b.strength - a.strength || a.label.localeCompare(b.label));
+
+      return {
+        sourceId: source.id,
+        sourceLabel: source.label,
+        sourceCategoryId: source.categoryId,
+        sourceCategoryLabel: source.categoryLabel,
+        sourceUsage: source.count,
+        relatedTargets,
+      };
     });
 
-    return relationships.sort((a, b) => b.strength - a.strength);
+    return groups
+      .filter((group) => group.relatedTargets.length > 0)
+      .sort((a, b) => {
+        const primaryCountDiff = (b.relatedTargets[0]?.count || 0) - (a.relatedTargets[0]?.count || 0);
+        if (primaryCountDiff !== 0) return primaryCountDiff;
+        const sourceUsageDiff = b.sourceUsage - a.sourceUsage;
+        if (sourceUsageDiff !== 0) return sourceUsageDiff;
+        return a.sourceLabel.localeCompare(b.sourceLabel);
+      });
   }, [tagStats]);
 
   const categorySummaries = useMemo(() => {
@@ -189,11 +209,26 @@ export function CategoryAnalysis() {
     return list;
   }, [selectedCategory, tagStats, textFilter]);
 
-  const filteredRelationships = useMemo(() => {
-    if (!textFilter.trim()) return tagRelationships;
-    const query = textFilter.trim().toLowerCase();
-    return tagRelationships.filter((rel) => rel.sourceLabel.toLowerCase().includes(query) || rel.targetLabel.toLowerCase().includes(query));
-  }, [tagRelationships, textFilter]);
+  const filteredRelationshipGroups = useMemo(() => {
+    let list = relationshipGroups;
+    if (selectedCategory) {
+      list = list.filter((group) => group.sourceCategoryId === selectedCategory);
+    }
+    if (textFilter.trim()) {
+      const query = textFilter.trim().toLowerCase();
+      list = list.filter((group) => {
+        if (group.sourceLabel.toLowerCase().includes(query) || group.sourceCategoryLabel.toLowerCase().includes(query)) {
+          return true;
+        }
+        return group.relatedTargets.some(
+          (target) =>
+            target.label.toLowerCase().includes(query) ||
+            target.categoryLabel.toLowerCase().includes(query)
+        );
+      });
+    }
+    return list;
+  }, [relationshipGroups, selectedCategory, textFilter]);
   const totalTagUsage = useMemo(() => tagStats.reduce((sum, tag) => sum + tag.count, 0), [tagStats]);
   const mostCitedTag = tagStats[0];
 
@@ -223,6 +258,9 @@ export function CategoryAnalysis() {
             onClick={() => {
               setActiveTab(tab.id as typeof activeTab);
               setTextFilter('');
+              if (tab.id !== 'relationships') {
+                setExpandedRelationshipGroups(new Set());
+              }
             }}
             className={cn(
               'flex items-center gap-2',
@@ -239,7 +277,7 @@ export function CategoryAnalysis() {
       {activeTab !== 'overview' && (
         <Card variant="glass" className="p-4">
           <div className="flex gap-4 items-end">
-            {activeTab === 'tags' && (
+            {(activeTab === 'tags' || activeTab === 'relationships') && (
               <div>
                 <label className="text-sm font-medium text-gray-300 mb-2 block">{t('filterByCategory')}</label>
                 <select
@@ -291,14 +329,62 @@ export function CategoryAnalysis() {
       )}
 
       {activeTab === 'relationships' && (
-        <Card variant="glass" className="p-6 space-y-3">
-          {filteredRelationships.slice(0, 15).map((rel) => (
-            <div key={`${rel.source}-${rel.target}`} className="flex items-center justify-between p-3 bg-white/5 rounded">
-              <span className="text-white">{rel.sourceLabel} → {rel.targetLabel}</span>
-              <span className="text-gray-400 text-sm">{t('coOccurrences')}: {rel.count}</span>
-            </div>
-          ))}
-        </Card>
+        <div className="space-y-4">
+          {filteredRelationshipGroups.slice(0, 20).map((group) => {
+            const isExpanded = expandedRelationshipGroups.has(group.sourceId);
+            const previewTargets = group.relatedTargets.slice(0, 3);
+            const visibleTargets = isExpanded ? group.relatedTargets : previewTargets;
+
+            return (
+              <Card key={group.sourceId} variant="glass" className="p-6 space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{group.sourceLabel}</h3>
+                    <p className="text-sm text-gray-400">{group.sourceCategoryLabel}</p>
+                    <p className="text-sm text-gray-300 mt-2">
+                      {previewTargets.map((target) => `${target.label} (${target.count})`).join(', ')}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">
+                      {t('totalRelations')}: {group.relatedTargets.length}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => {
+                        setExpandedRelationshipGroups((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(group.sourceId)) {
+                            next.delete(group.sourceId);
+                          } else {
+                            next.add(group.sourceId);
+                          }
+                          return next;
+                        });
+                      }}
+                    >
+                      {isExpanded ? t('showLessRelations') : t('showAllRelations')}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  {visibleTargets.map((target) => (
+                    <TagPill
+                      key={`${group.sourceId}-${target.id}`}
+                      tag={`${target.label} (${target.count})`}
+                      size="sm"
+                      variant="gradient"
+                      color={getTagColor(target.id)}
+                    />
+                  ))}
+                </div>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {activeTab === 'categories' && (
