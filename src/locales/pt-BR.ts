@@ -10,7 +10,7 @@ export const ptBR = {
   delete: 'Excluir',
   edit: 'Editar',
   add: 'Adicionar',
-  back: 'Voltar',
+  back: '',
   close: 'Fechar',
   confirm: 'Confirmar',
   reject: 'Rejeitar',
@@ -275,6 +275,7 @@ export const ptBR = {
   tagOverviewDescription: 'Obtenha uma visão geral rápida das suas tags de sonhos',
   tagAnalysisDescription: 'Mergulhe fundo nos relacionamentos e padrões das tags',
   mostUsedTags: 'Tags Mais Usadas',
+  mostCitedTag: 'Tag Mais Citada',
   
   // Layout
   layout: 'Layout',

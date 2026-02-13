@@ -194,6 +194,8 @@ export function CategoryAnalysis() {
     const query = textFilter.trim().toLowerCase();
     return tagRelationships.filter((rel) => rel.sourceLabel.toLowerCase().includes(query) || rel.targetLabel.toLowerCase().includes(query));
   }, [tagRelationships, textFilter]);
+  const totalTagUsage = useMemo(() => tagStats.reduce((sum, tag) => sum + tag.count, 0), [tagStats]);
+  const mostCitedTag = tagStats[0];
 
   const tabs = [
     { id: 'overview', label: t('overview') },
@@ -269,11 +271,10 @@ export function CategoryAnalysis() {
       )}
 
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card variant="glass" className="p-6 text-center"><div className="text-3xl font-bold text-blue-400 mb-2">{tagStats.length}</div><div className="text-gray-400">{t('uniqueTags')}</div></Card>
-          <Card variant="glass" className="p-6 text-center"><div className="text-3xl font-bold text-green-400 mb-2">{tagStats.reduce((sum, tag) => sum + tag.count, 0)}</div><div className="text-gray-400">{t('totalTagUsage')}</div></Card>
-          <Card variant="glass" className="p-6 text-center"><div className="text-3xl font-bold text-purple-400 mb-2">{tagStats.filter((tag) => tag.isCustom).length}</div><div className="text-gray-400">{t('customTags')}</div></Card>
-          <Card variant="glass" className="p-6 text-center"><div className="text-3xl font-bold text-orange-400 mb-2">{dreams.length > 0 ? (tagStats.reduce((sum, tag) => sum + tag.count, 0) / dreams.length).toFixed(1) : '0.0'}</div><div className="text-gray-400">{t('avgTagsPerDream')}</div></Card>
+          <Card variant="glass" className="p-6 text-center"><div className="text-3xl font-bold text-green-400 mb-2">{totalTagUsage}</div><div className="text-gray-400">{t('totalTagUsage')}</div></Card>
+          <Card variant="glass" className="p-6 text-center"><div className="text-3xl font-bold text-purple-400 mb-2 truncate">{mostCitedTag ? mostCitedTag.label : '-'}</div><div className="text-gray-400">{t('mostCitedTag')}</div></Card>
         </div>
       )}
 

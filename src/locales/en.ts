@@ -276,6 +276,7 @@ export const en = {
   tagOverviewDescription: 'Get a quick overview of your dream tags',
   tagAnalysisDescription: 'Deep dive into tag relationships and patterns',
   mostUsedTags: 'Most Used Tags',
+  mostCitedTag: 'Most Cited Tag',
   
   // Layout
   layout: 'Layout',
