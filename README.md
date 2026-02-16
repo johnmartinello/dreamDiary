@@ -5,20 +5,23 @@ A modern dream journaling application built with React, TypeScript, and Tailwind
 ## Screenshots
 
 ### Main Menu
-![Dream Diary Menu](images/dreamweavemenu.png)
-*The main menu interface with glass morphism design*
+<img width="1910" height="1064" alt="image" src="https://github.com/user-attachments/assets/69a80386-42d5-42a7-84d0-56c4429a1b90" />
 
 ### Dream Editor
-![Dream Diary Editor](images/dreamweaveeditor.png)
-*Create and edit dreams with rich text formatting and citation support*
+<img width="1905" height="1063" alt="image" src="https://github.com/user-attachments/assets/05e11433-276a-44a9-bc47-1fca5d209296" />
+
+*Create and edit dreams with rich text formatting and tag/dream citation support*
 
 ### Dream Graph
-![Dream Diary Graph](images/dreamweavegraph.png)
+<img width="1910" height="1060" alt="image" src="https://github.com/user-attachments/assets/759e367d-930d-40d9-a370-1cc229f7ac7e" />
+
 *Interactive graph visualization showing connections between dreams*
 
-### Citation System
-![Dream Diary Citations](images/dreamweavecitations.png)
-*Citation management and dream linking features*
+### Tag analysis
+
+<img width="1913" height="1068" alt="image" src="https://github.com/user-attachments/assets/f09b5776-ea2c-4157-9c6f-36742db30114" />
+
+*View insights of the relationship between tags across your dreams*
 
 ## Download
 
@@ -48,7 +51,7 @@ If you prefer to build the application yourself, see the [Installation](#install
 
 ### Citation System ✨
 - **Dream Linking**: Connect dreams together by citing other dreams within each entry
-- **Inline Mentions**: Use "@" mentions in dream descriptions to automatically create citations
+- **Inline Mentions**: Use "@" mentions in dreams description to mention a tag or "#" to mention another dream
 - **Citation Search**: Search and browse other dreams to add as citations
 - **Bidirectional Links**: View both dreams you cite and dreams that cite the current dream
 - **Citation Preview**: Preview cited dreams without leaving the current editor
