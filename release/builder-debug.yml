@@ -33,8 +33,8 @@ x64:
     - '!node_modules/**/*.spec.js'
 nsis:
   script: |-
-    !include "C:\Users\Joao_\github\Dreamweave\node_modules\app-builder-lib\templates\nsis\include\StdUtils.nsh"
-    !addincludedir "C:\Users\Joao_\github\Dreamweave\node_modules\app-builder-lib\templates\nsis\include"
+    !include "C:\Users\MaJo506\github\dreamDiary\node_modules\app-builder-lib\templates\nsis\include\StdUtils.nsh"
+    !addincludedir "C:\Users\MaJo506\github\dreamDiary\node_modules\app-builder-lib\templates\nsis\include"
     !macro _isUpdated _a _b _t _f
       ${StdUtils.TestParameter} $R9 "updated"
       StrCmp "$R9" "true" `${_t}` `${_f}`
@@ -106,9 +106,9 @@ nsis:
       !insertmacro MUI_LANGUAGE "Vietnamese"
     !macroend
 
-    !include "C:\Users\Joao_\AppData\Local\Temp\t-HISuJ8\2-messages.nsh"
-    !include "C:\Users\Joao_\AppData\Local\Temp\t-HISuJ8\3-messages.nsh"
-    !addplugindir /x86-unicode "C:\Users\Joao_\AppData\Local\electron-builder\Cache\nsis\nsis-resources-3.4.1\plugins\x86-unicode"
+    !include "C:\Users\MaJo506\AppData\Local\Temp\t-a4KNb1\3-messages.nsh"
+    !include "C:\Users\MaJo506\AppData\Local\Temp\t-a4KNb1\2-messages.nsh"
+    !addplugindir /x86-unicode "C:\Users\MaJo506\AppData\Local\electron-builder\Cache\nsis\nsis-resources-3.4.1\plugins\x86-unicode"
 
     Var newStartMenuLink
     Var oldStartMenuLink

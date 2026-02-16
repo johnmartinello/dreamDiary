@@ -19,6 +19,7 @@ mac:
 win:
   target: nsis
   compression: maximum
+  signAndEditExecutable: false
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
